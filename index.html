@@ -154,6 +154,8 @@ body.portrait .cal.bigcal{min-height:560px}
 body.portrait .top{order:1}body.portrait .prow{order:2}body.portrait #calc{order:3}body.portrait .lcol{order:4}
 .top>.tc{background:transparent!important;border:0!important;box-shadow:none!important}
 .modal>div{max-height:94%;overflow:auto}
+.prow{gap:6px}.prow .pill{padding:5px 14px;font-size:13px;border-width:1px}.prow .vsel{padding:5px 8px;font-size:13px;height:auto}.prow button.addev,.prow .pill.on[onclick]{padding:5px 12px;font-size:13px}
+.sx .n>small{display:inline!important;color:var(--mute)!important;font-size:12px!important}
 </style>
 </head>
 <body>
@@ -196,7 +198,7 @@ body.portrait .top{order:1}body.portrait .prow{order:2}body.portrait #calc{order
   <small id="l8" style="display:none">End date</small><input id="f8" type="date" style="display:none">
   <input id="f9" placeholder="Where to" style="display:none">
   <textarea id="f10" rows="3" placeholder="Flights, times, accommodation…" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"></textarea>
-  <div style="display:flex;gap:8px;margin-top:8px"><button class="p" id="fok">Save</button><button id="fclear" style="display:none">Clear</button><button onclick="closeForm()">Cancel</button></div>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="p" id="fok">Save</button><button id="fclear" style="display:none">Delete</button><button onclick="closeForm()">Cancel</button></div>
 </div></div>
 
 <div id="menu" class="modal"><div>
@@ -398,7 +400,7 @@ function dueText(due,st,lastDone,doneWord){
 function renderChores(){
   $('chores').innerHTML=ch.length?grouped('chores',ch.map(c=>{
     const st=dueState(c.next_due,c.last_done_at,c.repeat_days,2);
-    return {st,html:`<div class="row sx st-${st}"><div style="display:flex;align-items:center"><span class="ico">${st==='ok'?'✅':st==='over'?'🚨':icon(c.name)}</span><div><span class="n" onclick="editChore('${c.id}')">${esc(c.name)}</span><small>${asTag(c.assignee)} ${chipTxt(c.next_due,st,c.last_done_at,'Done')}</small></div></div>${st==='ok'?`<button class="okb" onclick="undoChore('${c.id}')">✓</button>`:`<button onclick="doneChore('${c.id}')">Done</button>`}</div>`}
+    return {st,html:`<div class="row sx st-${st}"><div style="display:flex;align-items:center;cursor:pointer;flex:1;min-width:0" onclick="editChore('${c.id}')"><span class="ico">${st==='ok'?'✅':st==='over'?'🚨':icon(c.name)}</span><div><span class="n">${esc(c.name)} <small>✎</small></span><small>${asTag(c.assignee)} ${chipTxt(c.next_due,st,c.last_done_at,'Done')}</small></div></div>${st==='ok'?`<button class="okb" onclick="undoChore('${c.id}')">✓</button>`:`<button onclick="doneChore('${c.id}')">Done</button>`}</div>`}
   })):'<p class="ph">No chores yet. Tap +.</p>';
 }
 function renderTodos(){
@@ -474,7 +476,7 @@ function openForm(title,ph,okFn,opts={}){
   $('f6').style.display=opts.kind?'block':'none';$('f6').innerHTML=(opts.kindOpts||[['flea_worm','Flea & worm'],['flea','Flea'],['worm','Worm'],['med','Medication'],['other','Other']]).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');$('f6').value=opts.kindValue||$('f6').options[0].value;
   $('f7').style.display=opts.assign?'block':'none';$('f7').innerHTML=ASSIGN.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');$('f7').value=opts.assignValue||'';
   ['f8','f9','f10','l5','l8'].forEach(i=>$(i).style.display=opts.trip?'block':'none');if(opts.trip){$('f8').value=opts.endValue||'';$('f9').value=opts.where||'';$('f10').value=opts.notes||''}
-  $('fclear').style.display=opts.clear?'inline-block':'none';$('fclear').onclick=async()=>{await opts.clear();closeForm();load()};
+  $('fclear').style.display=opts.clear?'inline-block':'none';$('fclear').textContent='Delete';let armed=0;$('fclear').onclick=async()=>{if(!armed){armed=1;$('fclear').textContent='Tap again to delete';setTimeout(()=>{armed=0;$('fclear').textContent='Delete'},3000);return}await opts.clear();closeForm();load()};
   $('fok').onclick=async()=>{if(!$('f1').value.trim())return;if(opts.needDate&&!$('f5').value){$('f5').focus();return}await okFn($('f1').value.trim(),$('f2').value,$('f3').value,{date:$('f5').value,kind:$('f6').value,assign:$('f7').value||null,end:$('f8').value,where:$('f9').value.trim(),notes:$('f10').value.trim()});closeForm();load()};
   $('form').style.display='flex';$('f1').focus();
 }
@@ -496,7 +498,7 @@ function addChore(){openForm('New chore','e.g. Kitchen bin',async(n,_,r,x)=>{
   await sb.from('chores').insert({household_id:HID,name:n,repeat_days:rep,next_due:x.date||(rep?ymd(new Date()):null),assignee:x.assign})},{repeat:true,date:true,assign:true,dateValue:ymd(new Date())})}
 function editChore(id){const c=ch.find(x=>x.id===id);
   openForm('Edit chore','Name',async(n,_,r,x)=>{await sb.from('chores').update({name:n,repeat_days:r?+r:null,next_due:x.date||null,assignee:x.assign}).eq('id',id)},
-    {value:c.name,repeat:true,date:true,assign:true,assignValue:c.assignee||'',dateValue:c.next_due||'',clear:async()=>{if(confirm('Delete '+c.name+'?'))await sb.from('chores').delete().eq('id',id)}});
+    {value:c.name,repeat:true,date:true,assign:true,assignValue:c.assignee||'',dateValue:c.next_due||'',clear:async()=>{if(true)await sb.from('chores').delete().eq('id',id)}});
   $('f3').value=c.repeat_days||'';}
 function addTodo(){openForm('New to-do','What needs doing?',async(t,_,__,x)=>{await sb.from('todos').insert({household_id:HID,title:t,assignee:x.assign})},{assign:true})}
 function editTodo(id){const t=td.find(x=>x.id===id);openForm('Edit to-do','What needs doing?',async(n,_,__,x)=>{await sb.from('todos').update({title:n,assignee:x.assign}).eq('id',id)},{value:t.title,assign:true,assignValue:t.assignee||'',clear:async()=>{await sb.from('todos').delete().eq('id',id)}})}
@@ -531,7 +533,7 @@ function renderPets(){
     return `<div class="pet"><h4><span onclick="editPet('${p.id}')">🐾 ${esc(p.name)}</span><span class="acts"><button onclick="addPetItem('${p.id}')">+ Treat</button><button onclick="addVet('${p.id}')">+ Vet</button></span></h4>${grouped('pet'+p.id,items)}</div>`}).join(''):'<p class="ph">Tap + Pet to add a pet.</p>';
 }
 function addPet(){openForm('New pet','Pet name',async n=>{await sb.from('pets').insert({household_id:HID,name:n})})}
-function editPet(id){const p=pets.find(x=>x.id===id);openForm('Edit pet','Pet name',async n=>{await sb.from('pets').update({name:n}).eq('id',id)},{value:p.name,clear:async()=>{if(confirm('Delete '+p.name+' and all their treatments?'))await sb.from('pets').delete().eq('id',id)}})}
+function editPet(id){const p=pets.find(x=>x.id===id);openForm('Edit pet','Pet name',async n=>{await sb.from('pets').update({name:n}).eq('id',id)},{value:p.name,clear:async()=>{if(true)await sb.from('pets').delete().eq('id',id)}})}
 function addPetItem(pid){const p=pets.find(x=>x.id===pid);
   openForm('New treatment · '+p.name,'Name (e.g. NexGard, Heartworm)',async(n,_,r,x)=>{
     const rep=r?+r:null;await sb.from('pet_items').insert({household_id:HID,pet_id:pid,kind:x.kind,name:n,repeat_days:rep,next_due:x.date||ymd(new Date())})},
@@ -579,7 +581,7 @@ function addBill(){openForm('New bill','Bill name (e.g. Power)',async(n,_,a,x)=>
   $('f3').placeholder='Amount in $ (optional)'}
 function editBill(id){const b=bills.find(x=>x.id===id);
   openForm('Edit bill','Bill name',async(n,_,a,x)=>{await sb.from('bills').update({name:n,amount:a?+a:null,due_date:x.date||b.due_date,repeat:x.kind,assignee:x.assign}).eq('id',id)},
-    {assign:true,assignValue:b.assignee||'',value:b.name,num:true,kind:true,kindOpts:FREQ,kindValue:b.repeat||'monthly',date:true,needDate:true,dateValue:b.due_date,clear:async()=>{if(confirm('Delete '+b.name+'?'))await sb.from('bills').delete().eq('id',id)}});
+    {assign:true,assignValue:b.assignee||'',value:b.name,num:true,kind:true,kindOpts:FREQ,kindValue:b.repeat||'monthly',date:true,needDate:true,dateValue:b.due_date,clear:async()=>{if(true)await sb.from('bills').delete().eq('id',id)}});
   $('f3').value=b.amount==null?'':b.amount;$('f3').placeholder='Amount in $ (optional)'}
 async function payBill(id){const b=bills.find(x=>x.id===id);
   const upd={last_paid_at:new Date().toISOString(),last_paid_by:ME,prev_due:b.due_date};
