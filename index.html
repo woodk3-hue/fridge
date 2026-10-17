@@ -157,6 +157,8 @@ body.portrait .top{order:1}body.portrait .prow{order:2}body.portrait #calc{order
 .prow{gap:6px}.prow .pill{padding:5px 14px;font-size:13px;border-width:1px}.prow .vsel{padding:5px 8px;font-size:13px;height:auto}.prow button.addev,.prow .pill.on[onclick]{padding:5px 12px;font-size:13px}
 .sx .n>small{display:inline!important;color:var(--mute)!important;font-size:12px!important}
 .prow{gap:4px}.prow .pill{padding:2px 9px!important;font-size:10px!important;border-width:1px}.prow .vsel{padding:2px 5px!important;font-size:10px!important;height:auto!important;border-radius:999px}.prow button.addev,.prow .pill.on[onclick]{padding:2px 9px!important;font-size:10px!important}
+.mh .prow{flex:1;justify-content:center;margin:0 10px;flex-wrap:nowrap;gap:5px;min-width:0}.mh .prow .pill{padding:3px 11px!important;font-size:11px!important}.mh .prow .vsel{padding:3px 6px!important;font-size:11px!important}.mh .prow button.addev,.mh .prow .pill.on[onclick]{padding:3px 11px!important;font-size:11px!important;white-space:nowrap}
+#app{grid-template-rows:auto minmax(0,1fr)}.lcol{grid-row:2}#calc{grid-row:2}
 </style>
 </head>
 <body>
@@ -233,9 +235,8 @@ body.portrait .top{order:1}body.portrait .prow{order:2}body.portrait #calc{order
     </div>
     <div class="card" id="chcard"><div class="lbl">Chores <button onclick="addChore()">+</button></div><div id="chores"></div></div>
   </div>
-  <div class="prow" id="prow"></div>
   <div class="card" id="calc">
-    <div class="mh"><b id="mname" style="font-size:18px"></b><span><button onclick="mv(-1)">‹</button> <button onclick="mv(1)">›</button> <button onclick="goToday()">Today</button> <button onclick="$('hidshow').value=HID;$('locin').value=getLoc().n;$('locmsg').textContent='';$('menu').style.display='flex'">⚙</button></span></div>
+    <div class="mh"><b id="mname" style="font-size:18px;white-space:nowrap"></b><div class="prow" id="prow"></div><span style="white-space:nowrap"><button onclick="mv(-1)">‹</button> <button onclick="mv(1)">›</button> <button onclick="goToday()">Today</button> <button onclick="$('hidshow').value=HID;$('locin').value=getLoc().n;$('locmsg').textContent='';$('menu').style.display='flex'">⚙</button></span></div>
     <div class="cal bigcal" id="cal" style="flex:1;min-height:0"></div>
   </div>
 </div>
