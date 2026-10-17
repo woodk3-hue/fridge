@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fridge</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f3f3f3;--card:#fff;--ink:#2a2a2a;--mute:#8a8a8a;--acc:#d63a2f;--grn:#2f6b4f;--tile:#d6ebdf;--lav:#e3e1f5;--pill:#e6e6e6;--line:#ececec;--me:#4a4fa8;--pt:#2a9d8f;--ev:#e8923a}
+*{box-sizing:border-box;margin:0;font-family:Georgia,"Noto Serif","Iowan Old Style","Times New Roman",serif}
+body{background:var(--bg);color:var(--ink);height:100vh;overflow:hidden}
+button{border:0;border-radius:999px;padding:7px 14px;font-size:14px;background:var(--pill);color:var(--ink);cursor:pointer}
+button.p{background:var(--acc);color:#fff;font-weight:600}
+input{width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff}
+#login{max-width:380px;margin:12vh auto;padding:24px;background:var(--card);border-radius:24px;display:none}
+#app{display:none;height:100vh;padding:12px;grid-template-columns:1fr minmax(280px,320px);grid-template-rows:auto auto minmax(0,1fr);gap:12px}
+#app>.card,#app>div{min-height:0;min-width:0}
+.lcol{grid-column:2;grid-row:3;display:flex;flex-direction:column;gap:12px;min-height:0}.lcol>.card{flex:1 1 0}.lcol>.card.pc{flex:1.3 1 0}.lcol>.card.bc{flex:.8 1 0}
+.top{grid-column:1/-1;display:grid;grid-template-columns:1.1fr 1.5fr 1fr;gap:12px;height:200px}.top>.card{min-height:0;min-width:0}
+.prow{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{border-radius:999px;padding:9px 18px;font-weight:700;font-size:15px;border:2px solid transparent;opacity:.4}.pill.on{opacity:1}
+.addev{background:#3a3a4a;color:#fff;font-weight:700;padding:10px 22px;margin-left:auto}
+.vsel{border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:15px;background:#fff}
+#calc{touch-action:pan-y;grid-column:1;display:flex;flex-direction:column;padding:10px 14px}
+.bar{grid-column:2}
+.col{display:flex;flex-direction:column;gap:14px;min-height:0}
+.card{background:var(--card);border:1px solid #e6e6e6;border-radius:18px;padding:14px 16px;overflow:auto;flex:1;min-height:0}
+.card.fit{flex:0 0 auto}
+.lbl{font-size:12px;letter-spacing:.09em;color:var(--mute);text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.lbl button{text-transform:none;letter-spacing:0}
+.big{font-size:22px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.tile{background:var(--tile);border-radius:18px;padding:12px 14px;min-height:92px}
+.tile b{font-size:18px}.tile .t{color:var(--grn);font-weight:600;font-size:17px;margin-top:8px}.tile small{color:var(--mute);display:block;margin-top:2px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:8px}
+.row:last-child{border:0}
+.row .n{font-size:17px}.row small{display:block;color:var(--mute);font-size:13px;margin-top:1px}
+.ico{font-size:20px;margin-right:10px}
+button.okb{background:var(--grn);color:#fff;font-weight:600}.row.done .n{text-decoration:line-through;color:var(--mute)}
+.plan{display:flex;flex-wrap:wrap;gap:2px 10px;justify-content:space-between;background:#ece8df;border-radius:14px;padding:13px 14px;margin-bottom:8px;cursor:pointer}
+.plan span:first-child{font-size:12px;letter-spacing:.08em;color:var(--mute)}
+.plan span:last-child{color:var(--mute)}.plan span.set{color:var(--ink);font-weight:600}
+.ph{color:var(--mute);font-size:14px;line-height:1.45}
+.banner{background:var(--lav);border-radius:14px;padding:10px 14px;margin:6px 0 10px;font-size:14px;line-height:1.4}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal .h{text-align:center;font-size:11px;color:var(--mute);padding-bottom:2px}
+.d{aspect-ratio:1.15;background:#ebe7de;border-radius:11px;text-align:center;padding-top:4px;font-size:14px;position:relative;cursor:pointer;color:#555}
+.d.o{opacity:.45}.d.t{outline:2px solid var(--acc);background:#fff}
+.dots{position:absolute;bottom:3px;left:0;right:0;display:flex;gap:2px;justify-content:center}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.me{background:var(--me)}.pt{background:var(--pt)}.ev{background:var(--ev)}
+.w{background:#ebe7de;border-radius:9px;min-height:50px;padding:3px 2px;text-align:center;font-size:11px;color:#666;cursor:pointer}
+.w.o{opacity:.4}.w.t{outline:2px solid var(--acc);background:#fff}
+.w b{display:block;font-size:12px;font-weight:500}
+.w i{display:block;font-style:normal;font-weight:700;font-size:12px}
+.w i.me{color:var(--me);background:none}.w i.lv{color:#d63a2f;background:none}.w i.of{color:var(--mute);background:none;font-weight:600}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pet{padding:8px 0;border-bottom:1px solid var(--line)}.pet:last-child{border:0}.pet h4{font-size:17px;display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}.pet .acts{display:flex;gap:6px;margin:6px 0 2px}.pet .acts button{font-size:12px;padding:5px 11px}.pi{display:flex;justify-content:space-between;align-items:center;padding:7px 0;gap:8px}.pi small{display:block;color:var(--mute);font-size:12px}
+
+.cal.bigcal{gap:8px;flex:1;grid-auto-rows:1fr}
+.cal.bigcal .h{font-size:13px;font-weight:600;color:var(--mute)}
+.cd{background:#fff;border:1px solid #ececec;border-radius:12px;padding:4px 6px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;gap:3px;min-height:0;position:relative}
+.cd.o{opacity:.45}.cd.t{outline:2px solid var(--acc)}
+.cd .dn{display:flex;justify-content:space-between;align-items:center;gap:4px}.cd .dn .dd{display:flex;align-items:baseline;gap:4px}.cd .dn .dd b{font-size:24px;line-height:1;font-weight:700}.cd .dn .dd small{font-size:12px;font-weight:700;color:#555}
+.eb{font-size:12px;line-height:1.25;border-radius:7px;padding:3px 7px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;flex:none}.eb i{font-style:normal;font-size:10px;opacity:.8;margin-right:4px}
+.cal.wk .eb{white-space:normal;font-size:14px;padding:6px 8px}.cal.wk .cd .dn .dd b{font-size:30px}
+.eb.bill{background:#0f766e;color:#fff}.eb.bill.st-soon{background:#d63a2f}.eb.bill.st-over{background:#b91c1c;animation:pulse 1.4s infinite}.eb.bill.st-ok{background:#2f6b4f}
+.strip{display:flex;align-items:center;gap:26px;padding:10px 18px}.strip>b{font-size:17px;white-space:nowrap}.seg{display:flex;align-items:center;gap:10px}.seg small{color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.06em}.seg>div{display:flex;align-items:center;gap:8px}.sj{color:var(--mute);font-size:13px}.ft{margin-left:auto;display:flex;gap:18px;color:var(--mute);font-size:16px}.strip .tm{font-size:19px}
+.cd.c-al{background:#fdecea}.cd.c-lsl{background:#e4f5f2}.cd.c-sl{background:#e6f1f8}.cd.c-off{background:#eeeefc}
+.tm{font-size:15px;font-weight:800;line-height:1.1}.cd .tm{font-size:12px;font-weight:700}.cd .bd{font-size:10px;padding:1px 5px;align-self:auto}
+.bd{font-size:11px;font-weight:800;padding:2px 6px;border-radius:5px;display:inline-block;letter-spacing:.02em;align-self:flex-start}
+.b-al{background:rgba(220,38,38,.22);color:#b91c1c}.b-lsl{background:rgba(13,148,136,.22);color:#0f766e}.b-sl{background:rgba(3,105,161,.2);color:#0369a1}
+.b-blp{background:rgba(99,102,241,.28);color:#4338ca}.b-ph{background:#92400e;color:#fde68a}.b-afa{background:#15803d;color:#fff}.b-afp{background:#92400e;color:#fcd34d}
+.b-cbo{background:#ea580c;color:#fff}.b-mbo{background:#e0dcd2;color:#6b665c}.b-swap{background:rgba(124,58,237,.22);color:#6d28d9}
+.ap{font-size:12px;line-height:1.3;flex:none;color:#fff;background:#1d4ed8;border-radius:6px;padding:2px 6px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.ap.pet{background:#be185d}.more{font-size:10px;color:var(--mute)}
+.sx{flex-wrap:wrap;row-gap:6px}.sx>div:first-child{min-width:0;flex:1 1 120px}.sx>div:first-child>div{min-width:0}.sx>span{margin-left:auto}.sx .n,.sx .pn{display:block;overflow-wrap:break-word}.sx .n,.sx .pn,.sx small{line-height:1.25}
+.sx{border-radius:14px;padding:8px 10px!important;margin:3px 0;border-bottom:0!important}
+.sx.st-ok{background:#d6eddd}.sx.st-ok .n,.sx.st-ok .pn{color:#1f6b45;text-decoration:line-through}.sx.st-ok small{color:#2f6b4f}
+.sx.st-soon{background:#fde3e0;box-shadow:inset 5px 0 0 #d63a2f}.sx.st-soon small{color:#c0291f;font-weight:700}
+.sx.st-over{background:#c62d22;animation:pulse 1.4s infinite}.sx.st-over .n,.sx.st-over .pn,.sx.st-over small{color:#fff;font-weight:800}.sx.st-over button{background:#fff;color:#c62d22;font-weight:800}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(198,45,34,.6)}50%{box-shadow:0 0 0 9px rgba(198,45,34,0)}}
+.ap.bill{background:#0f766e}.ap.bill.st-soon{background:#d63a2f}.ap.bill.st-over{background:#b91c1c;animation:pulse 1.4s infinite}.ap.bill.st-ok{background:#2f6b4f}
+.stack{display:flex;flex-direction:column;gap:12px;min-height:0;min-width:0}.stack>.card{flex:1;min-height:0}
+.as{display:inline-block;border-radius:999px;padding:0 8px;font-size:11px;font-weight:700;margin-right:4px;background:#e6e6e6;color:#555}.as-kim{background:#a8d0e6;color:#1c3d52}.as-cat{background:#fcc8e0;color:#6b2142}.as-both{background:#4a90e2;color:#fff}
+.sum{font-size:13px;color:var(--mute);margin:-4px 0 6px}
+.card{padding:12px 14px!important}
+.lbl{margin-bottom:6px!important}
+.sx{padding:6px 9px!important;margin:2px 0!important;border-radius:12px!important}
+.sx .n,.sx .pn{font-size:15px;font-weight:600;cursor:pointer}.sx small{font-size:12px}.sx .ico{font-size:17px;margin-right:8px}
+.sx button{padding:5px 11px;font-size:13px}
+.doneg{font-size:13px;color:var(--grn);background:#e9f3ec;border-radius:10px;padding:6px 10px;margin:4px 0;cursor:pointer;font-weight:600}
+.pet h4{font-size:15px!important}.pet h4 .acts{display:flex;gap:5px;margin:0!important}.pet h4 .acts button{font-size:12px;padding:4px 9px}.pet{padding:4px 0!important}.pet .acts{margin:4px 0 0!important}
+.top .tc{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr auto;column-gap:14px;row-gap:6px;align-items:center;cursor:default}
+.tck{grid-column:1;grid-row:1;cursor:pointer}.tmeta{grid-column:1;grid-row:2;font-size:13px;color:var(--mute);display:flex;gap:10px;align-items:center;cursor:pointer}
+#tmsg{font-size:17px;font-style:italic;color:#3a6a4a;margin-top:8px;line-height:1.3}.lcol>.card{overflow:auto}.lcol>.card.pc{flex:1 1 0}.lcol>.card:first-child{flex:1 1 0}.lcol>.card:last-child{flex:1 1 0}#chcard{overflow:auto;padding:10px 12px}.lcol{gap:8px}.lcol .lbl button{padding:2px 10px;font-size:13px;min-height:0;line-height:1.3}.lcol .sx{padding:3px 8px!important;margin:1px 0!important}.lcol .sx .n,.lcol .sx .pn{font-size:14px}.lcol .sx button{padding:3px 9px;font-size:12px}.lcol .pet h4{margin:0!important}.lcol .row{padding:4px 2px}.lcol .lbl{margin-bottom:2px}.lcol>.card{padding:8px 12px}.wxg{display:contents}.wxd:nth-child(1){grid-column:2;grid-row:1}.wxd:nth-child(2){grid-column:2;grid-row:2;border-top:1px solid var(--line);padding-top:6px}
+.top #clock{font-size:52px;line-height:1;letter-spacing:-1px;cursor:pointer}.top #cdate{font-size:14px;color:var(--mute)}.top .card{padding:10px 14px}
+.wxd{display:flex;gap:10px;align-items:center;justify-content:space-between;min-width:0}.wxd>div{min-width:0}.wxd .wi{font-size:44px;line-height:1;order:2}.wxd:nth-child(2) .wi{font-size:30px}.wxd b{font-size:30px;line-height:1}.wxd:nth-child(2) small b{font-size:16px;color:var(--ink)}.wxd small{font-size:13px}.wxd small{display:block;color:#5a6a76;font-size:13px;line-height:1.3}.wxd h6{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:400;margin-bottom:2px}.wxd .rn{display:inline-block;background:#d63a2f;color:#fff;border-radius:999px;padding:1px 8px;font-weight:700;font-size:11px;margin-top:3px;white-space:nowrap}
+#tlist{display:grid;grid-template-columns:1fr 1.15fr;grid-template-rows:auto 1fr;gap:0 16px;align-content:start}#tlist .due{grid-column:2;grid-row:1/3}#tlist .lbl{margin:6px 0 3px!important}#tlist .lbl:first-child{margin-top:0!important}#tlist .sr{padding:4px 8px;font-size:14px}#tlist .sr button{padding:3px 9px}#tlist .ph{font-size:13px}#tlist>div{min-width:0}#tlist .sr{min-width:0}#tlist .sr>span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tsh{font-size:20px;font-weight:700}.tsh .tm{font-size:24px}.tsh2{font-size:13px;color:var(--mute);margin-top:2px;display:flex;gap:8px;align-items:center}
+#tlist .sr{padding:8px 10px;font-size:15px;margin:2px 0;gap:8px}#tlist .sr button{padding:4px 10px;font-size:13px;margin-left:auto}
+#tlist .sr .x{margin-left:auto}#tlist .sr b{font-size:13px;color:var(--mute);min-width:44px}
+.bar{display:flex;align-items:center;gap:22px;padding:8px 16px!important}
+.bar .blk{display:flex;align-items:center;gap:12px;white-space:nowrap}.bar .blk>b{font-size:16px}
+.bar .seg span{font-size:15px;font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;display:block}.bar .seg span.set{color:var(--ink)}.bar .seg span:not(.set){color:var(--mute);font-weight:500}
+.bar .ck{margin-left:auto;cursor:pointer;gap:14px;flex:none;color:var(--mute)}
+.bar .blk:not(.ck){min-width:0}
+.clk{text-align:right;line-height:1.05}#clock{font-size:34px;font-weight:700;color:var(--ink);letter-spacing:-.5px}#cdate{font-size:12px}
+#tchips{display:flex;gap:6px}.tchip{background:#e3e1f5;color:#4a4fa8;border-radius:999px;padding:5px 12px;font-weight:700;font-size:15px}
+.tchip.ring{background:#d63a2f;color:#fff;animation:flash .6s infinite}@keyframes flash{50%{opacity:.35}}
+.tp{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.trow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.foot{display:flex;justify-content:space-between;align-items:center;color:var(--mute);font-size:16px;padding:2px 6px 0}
+#pan>div{width:min(640px,94vw);max-height:88vh;display:flex;flex-direction:column}
+.tabs{display:flex;gap:6px;margin-bottom:10px}.tabs button.on{background:var(--acc);color:#fff;font-weight:600}
+.padd{display:flex;gap:6px;align-items:center}.padd input,.padd select{margin:0;flex:1;min-width:0;padding:10px;border:1px solid var(--line);border-radius:14px;font-size:16px;background:#fff}
+#pbody{overflow:auto;flex:1;min-height:120px;margin-top:8px}
+.sr{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:14px;margin:3px 0;background:#ece8df;font-size:17px;cursor:pointer}
+.sr.ck{background:#d6eddd;color:#1f6b45;text-decoration:line-through}.sr .x{margin-left:auto;color:var(--mute);padding:0 6px}
+.sr em{font-style:normal;font-size:12px;background:#d6eddd;color:#1f6b45;border-radius:8px;padding:2px 7px}
+.sr.st-soon{background:#fde3e0;box-shadow:inset 5px 0 0 #d63a2f}.sr.st-over{background:#c62d22;color:#fff;animation:pulse 1.4s infinite}
+.sr small{color:var(--mute)}.sr.st-over small{color:#fff}
+.modal{position:fixed;inset:0;background:#0006;display:none;align-items:center;justify-content:center;z-index:9}
+.modal>div{background:var(--card);border-radius:24px;padding:22px;width:min(420px,92vw)}
+.tag{font-size:12px;border-radius:999px;padding:2px 9px;background:var(--lav);color:var(--me)}
+
+html[data-theme=dark]{--bg:#111215;--card:#1c1e23;--ink:#ece9e3;--mute:#9a978f;--line:#2c2f36;--pill:#2a2d34;--acc:#ef5b4d;--grn:#6fc08f;color-scheme:dark}
+html[data-theme=dark] .card{border-color:#2c2f36}
+html[data-theme=dark] input,html[data-theme=dark] select,html[data-theme=dark] textarea{background:#262930!important;color:var(--ink)!important;border-color:#3a3d45!important}
+html[data-theme=dark] button{background:var(--pill);color:var(--ink)}
+html[data-theme=dark] button.p{background:var(--acc);color:#fff}
+html[data-theme=dark] .cd{background:#202228;border-color:#2c2f36}
+html[data-theme=dark] .cd.c-al{background:#3a2422}html[data-theme=dark] .cd.c-lsl{background:#1c3331}html[data-theme=dark] .cd.c-sl{background:#1e3040}html[data-theme=dark] .cd.c-off{background:#2a2a45}
+html[data-theme=dark] .sx.st-soon,html[data-theme=dark] .sx.st-over{background:#3a2422!important;color:var(--ink)!important}
+html[data-theme=dark] .sx.st-ok{background:#1f3328!important}
+html[data-theme=dark] .sx button,html[data-theme=dark] .sr button{background:#2f3239!important;color:var(--ink)!important}
+html[data-theme=dark] #tlist .sr{background:#262930}
+html[data-theme=dark] #tlist .sr.st-soon,html[data-theme=dark] #tlist .sr.st-over{background:#3a2422!important}
+html[data-theme=dark] .doneg{background:#1f3328}
+html[data-theme=dark] .pill[style*="#fff"]{background:#1c1e23!important}
+html[data-theme=dark] .vsel{background:#262930;color:var(--ink)}
+html[data-theme=dark] #tmsg{color:#8fc9a5}
+html[data-theme=dark] .wxd small,html[data-theme=dark] .wxd:nth-child(2) small b{color:#b5b2aa}
+html[data-theme=dark] .modal>div,html[data-theme=dark] #login{background:#1c1e23;color:var(--ink)}
+html[data-theme=dark] .eb.bill{color:#fff}
+html[data-theme=dark] .cd .dn>span:last-child>*{filter:brightness(1.5)}
+body.portrait{overflow:auto;height:auto}
+body.portrait #app{height:auto;grid-template-columns:1fr;grid-template-rows:none}
+body.portrait .lcol,body.portrait .top,body.portrait .prow,body.portrait #calc{grid-column:1;grid-row:auto}
+body.portrait .top{grid-template-columns:1fr;height:auto}
+body.portrait .lcol{flex-direction:column}
+body.portrait .lcol>.card{flex:none;max-height:none}
+body.portrait .cal.bigcal{min-height:560px}
+body.portrait .top{order:1}body.portrait .prow{order:2}body.portrait #calc{order:3}body.portrait .lcol{order:4}
+.top>.tc{background:transparent!important;border:0!important;box-shadow:none!important}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2 style="margin-bottom:8px">Fridge sign in</h2>
+  <input id="em" type="email" placeholder="Email" autocomplete="email">
+  <input id="pw" type="password" placeholder="Password (6+ characters)" autocomplete="current-password">
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="p" onclick="signIn()">Sign in</button><button onclick="signUp()">Create account</button></div>
+  <p style="margin-top:10px"><a href="#" id="fgt" onclick="resetPw();return false" style="font-size:14px;color:var(--mute)">Forgot password?</a></p>
+  <p id="lmsg" class="ph" style="margin-top:12px"></p>
+</div>
+
+<div id="setup" class="modal"><div>
+  <h3 style="margin-bottom:10px">Set up your home</h3>
+  <button class="p" onclick="makeHome()">Create new household</button>
+  <p class="ph" style="margin:14px 0 4px">Or join your partner's with their Household ID:</p>
+  <input id="hid" placeholder="Paste Household ID">
+  <button onclick="joinHome()">Join</button>
+  <p id="smsg" class="ph" style="margin-top:10px"></p>
+</div></div>
+
+<div id="pan" class="modal"><div>
+  <div class="tabs"><button data-t="shop" onclick="ptab('shop')">🛒 Shopping</button><button data-t="stock" onclick="ptab('stock')">🥫 In stock</button><button data-t="meal" onclick="ptab('meal')">🍽 Plan a meal</button><button style="margin-left:auto" onclick="$('pan').style.display='none'">✕</button></div>
+  <div class="padd" id="padd"></div>
+  <div id="pbody"></div>
+</div></div>
+
+<div id="daym" class="modal" onclick="if(event.target===this)this.style.display='none'"><div style="min-width:320px;max-width:460px;width:90%;max-height:85vh;overflow:auto"><h3 id="dayt" style="margin-bottom:10px"></h3><div id="dayb"></div><div style="display:flex;gap:8px;margin-top:12px"><button class="p" id="dayadd">＋ Add event</button><button onclick="$('daym').style.display='none'">Close</button></div></div></div>
+
+<div id="form" class="modal"><div>
+  <h3 id="ftitle" style="margin-bottom:8px"></h3>
+  <input id="f1" placeholder="">
+  <input id="f2" type="time" style="display:none">
+  <input id="f3" type="number" min="1" placeholder="Repeat every X days (blank = once)" style="display:none">
+  <input id="f4" type="time" style="display:none">
+  <select id="f6" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"><option value="flea_worm">Flea &amp; worm</option><option value="flea">Flea</option><option value="worm">Worm</option><option value="med">Medication</option><option value="other">Other</option></select>
+  <select id="f7" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"></select>
+  <small id="l5" style="display:none">Start date</small><input id="f5" type="date" style="display:none">
+  <small id="l8" style="display:none">End date</small><input id="f8" type="date" style="display:none">
+  <input id="f9" placeholder="Where to" style="display:none">
+  <textarea id="f10" rows="3" placeholder="Flights, times, accommodation…" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"></textarea>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="p" id="fok">Save</button><button id="fclear" style="display:none">Clear</button><button onclick="closeForm()">Cancel</button></div>
+</div></div>
+
+<div id="menu" class="modal"><div>
+  <h3 style="margin-bottom:8px">Household ID</h3>
+  <p class="ph">Give this to your partner so they can join:</p>
+  <input id="hidshow" readonly onclick="this.select()">
+  <p class="ph" style="margin:14px 0 4px">Appearance:</p>
+  <select id="themesel" onchange="setTheme(this.value)" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px"><option value="light">Light</option><option value="dark">Dark</option><option value="auto">Auto (dark 6pm–6am)</option></select>
+  <p class="ph" style="margin:14px 0 4px">Weather location (suburb or town):</p>
+  <div style="display:flex;gap:6px"><input id="locin" placeholder="e.g. Brisbane"><button onclick="setLoc()">Set</button></div>
+  <p class="ph" id="locmsg"></p>
+  <div style="display:flex;gap:8px;margin-top:8px"><button onclick="sb.auth.signOut().then(()=>location.reload())">Sign out</button><button onclick="$('menu').style.display='none'">Close</button></div>
+</div></div>
+
+<div id="app">
+  <div class="lcol">
+    <div class="card"><div class="lbl">To do <button onclick="addTodo()">+</button></div><div id="todos"></div></div>
+    <div class="card pc"><div class="lbl">🐾 Pets <button onclick="addPet()">+ Pet</button></div><div id="pets"></div></div>
+  <div class="card"><div class="lbl">Notes <button onclick="addNote()">+</button></div><div id="notes"></div></div>
+  </div>
+  <div class="top">
+    <div class="card tc">
+      <div class="tck" onclick="openTimer()"><div id="clock"></div><div id="cdate"></div><div id="tmsg"></div></div>
+      <div class="wxg" id="wx" onclick="loadWx()"></div>
+      <div class="tmeta" onclick="openTimer()"><span id="tbtn">⏱</span><span id="tchips"></span><span id="batt"></span></div>
+    </div>
+    <div class="card" id="tlist">
+      <div><div class="lbl">📅 Events today</div><div id="tev"></div></div>
+      <div class="due"><div class="lbl">⚠ Due today</div><div id="tdue"></div></div>
+      <div><div class="lbl">🐾 Pets due</div><div id="tpet"></div></div>
+    </div>
+    <div class="card" id="chcard"><div class="lbl">Chores <button onclick="addChore()">+</button></div><div id="chores"></div></div>
+  </div>
+  <div class="prow" id="prow"></div>
+  <div class="card" id="calc">
+    <div class="mh"><b id="mname" style="font-size:18px"></b><span><button onclick="mv(-1)">‹</button> <button onclick="mv(1)">›</button> <button onclick="goToday()">Today</button> <button onclick="$('hidshow').value=HID;$('locin').value=getLoc().n;$('locmsg').textContent='';$('menu').style.display='flex'">⚙</button></span></div>
+    <div class="cal bigcal" id="cal" style="flex:1;min-height:0"></div>
+  </div>
+</div>
+
+<div id="timer" class="modal"><div>
+  <h3 style="margin-bottom:10px">⏱ Timers</h3>
+  <div class="tp"><button onclick="addTimer(5)">5 min</button><button onclick="addTimer(10)">10 min</button><button onclick="addTimer(15)">15 min</button><button onclick="addTimer(30)">30 min</button><button onclick="addTimer(60)">1 hr</button></div>
+  <input id="tlabel" placeholder="Label (optional, e.g. Pasta)">
+  <input id="tmin" type="number" min="1" placeholder="Custom minutes">
+  <button class="p" onclick="addTimer(+$('tmin').value,$('tlabel').value.trim())">Start</button>
+  <div id="tlist" style="margin-top:12px"></div>
+  <button style="margin-top:10px" onclick="$('timer').style.display='none'">Close</button>
+</div></div>
+
+<script>
+const SB_URL='https://lcwmbbickoylsybrqpei.supabase.co';
+const SB_KEY='sb_publishable_C9xS5earS-LRjjtuvWWDMg_JUX-KSTf';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let HID=null,ME=null,ev=[],ch=[],td=[],sh=[],ml=[],pets=[],pit=[],bills=[],shop=[],stock=[],cat=[],ptb='shop',view=new Date();view.setDate(1);
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hm=t=>t?t.slice(0,5):'';
+
+let recov=false;
+async function resetPw(){const e=$('em').value.trim();if(!e){$('lmsg').textContent='Type your email above first, then tap Forgot password.';return}
+  const{error}=await sb.auth.resetPasswordForEmail(e,{redirectTo:location.origin+location.pathname});
+  $('lmsg').textContent=error?error.message:'Check your email for a reset link.'}
+function showNewPw(){recov=true;$('login').style.display='block';$('app').style.display='none';$('em').style.display='none';$('fgt').style.display='none';
+  $('login').querySelector('h2').textContent='Set a new password';$('pw').placeholder='New password (6+ characters)';$('pw').value='';
+  $('login').querySelector('button.p').textContent='Save password';$('lmsg').textContent=''}
+async function signIn(){if(recov){const{error}=await sb.auth.updateUser({password:$('pw').value});if(error)$('lmsg').textContent=error.message;else{recov=false;history.replaceState(null,'',location.pathname);location.reload()}return}
+  const{error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});if(error)$('lmsg').textContent=error.message;else boot()}
+sb.auth.onAuthStateChange(ev=>{if(ev==='PASSWORD_RECOVERY')showNewPw()});
+async function signUp(){const{data,error}=await sb.auth.signUp({email:$('em').value,password:$('pw').value});if(error)$('lmsg').textContent=error.message;else if(data.session)boot();else $('lmsg').textContent='Account created. Check your email to confirm, then sign in.'}
+async function makeHome(){const{error}=await sb.rpc('create_household',{hname:'Home'});if(error)$('smsg').textContent=error.message;else boot()}
+async function joinHome(){const{error}=await sb.rpc('join_household',{hid:$('hid').value.trim()});if(error)$('smsg').textContent=error.message;else boot()}
+
+async function boot(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){$('login').style.display='block';$('app').style.display='none';return}
+  ME=session.user.id;$('login').style.display='none';
+  const{data:m}=await sb.from('household_members').select('household_id').limit(1);
+  if(!m||!m.length){$('setup').style.display='flex';return}
+  $('setup').style.display='none';HID=m[0].household_id;
+  $('app').style.display='grid';
+  await load();setInterval(load,60000);
+}
+
+async function load(){
+  const[e,c,t,s,m,pp,pi,bb,si,pa,cn]=await Promise.all([
+    sb.from('events').select('*').order('starts_at'),
+    sb.from('chores').select('*').order('next_due',{nullsFirst:false}),
+    sb.from('todos').select('*').order('created_at'),
+    sb.from('shifts').select('*').order('shift_date'),
+    sb.from('meals').select('*'),
+    sb.from('pets').select('*').order('created_at'),
+    sb.from('pet_items').select('*').order('next_due',{nullsFirst:false}),
+    sb.from('bills').select('*').order('due_date'),
+    sb.from('shopping_items').select('*').order('created_at'),
+    sb.from('pantry_items').select('*').order('use_by',{nullsFirst:false}),
+    sb.from('cat_notes').select('*').order('created_at')]);
+  ev=e.data||[];ch=c.data||[];td=t.data||[];sh=s.data||[];ml=m.data||[];pets=pp.data||[];pit=pi.data||[];bills=bb.data||[];shop=si.data||[];stock=pa.data||[];cat=cn.data||[];render();if($('pan').style.display==='flex')renderPan();
+}
+function render(){renderPills();renderToday();renderBills();renderPets();renderRoster();renderChores();renderTodos();renderNotes();renderCal();renderMeals()}
+
+function shiftsOn(k){return sh.filter(x=>x.shift_date===k)}
+function shiftLine(x){if(x.kind==='leave'||x.kind==='off')return x.label||'Off';return x.start_time?st(x.start_time)+(x.end_time?'–'+st(x.end_time):''):(x.label||'Shift')}
+function shiftCls(x){return x.kind==='leave'?'lv':x.kind==='off'?'of':'me'}
+function shiftCol(x){return x.kind==='leave'?'#d63a2f':x.kind==='off'?'var(--mute)':'var(--me)'}
+function tmin(t){const m=String(t||'').match(/(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m[2]:null}
+function timeCol(t){const m=tmin(t);if(m==null)return 'var(--ink)';return m<=300?'#10b981':m<=720?'#d98a06':'#ef4444'}
+function pillCol(t){const m=tmin(t);return m==null?'#6b665c':m<=300?'#15803d':m<=720?'#b45309':'#b91c1c'}
+function badgeCls(c){c=String(c||'').toUpperCase();
+  if(c==='AL')return'b-al';if(c==='LSL')return'b-lsl';if(['SL','FL','REPO','REPO LEAVE'].includes(c))return'b-sl';
+  if(['BLP','SLP','RDO'].includes(c)||c.startsWith('BLP')||c.startsWith('SLP'))return'b-blp';if(c.startsWith('PH'))return'b-ph';
+  if(c==='AFA'||/^AM[123]?$/.test(c))return'b-afa';if(/^PM[123]?$/.test(c))return'b-afp';if(c==='AFP')return'b-afp';if(c==='CBO')return'b-cbo';return'b-mbo'}
+function cellCls(x){if(!x||x.kind==='shift')return'';const c=String(x.label||'').toUpperCase();return c==='AL'?'c-al':c==='LSL'?'c-lsl':['SL','FL','REPO'].includes(c)?'c-sl':['BLP','SLP','RDO'].includes(c)?'c-off':''}
+function chip(x){
+  if(x.kind==='leave'||x.kind==='off')return `<span class="bd ${badgeCls(x.label)}">${esc(x.label||'Off')}</span>`;
+  const t=x.start_time?st(x.start_time):'';
+  return t?`<span class="bd" style="background:${pillCol(x.start_time)};color:#fff">${t}</span>`:`<span class="bd b-mbo">${esc(x.label||'Shift')}</span>`;
+}
+function getRName(){try{return localStorage.getItem('fridge_rname')||"Kim's roster"}catch(e){return "Kim's roster"}}
+function renameRoster(){const n=prompt('Name for this roster',getRName());if(n&&n.trim()){try{localStorage.setItem('fridge_rname',n.trim())}catch(e){}renderRoster()}}
+function dayChips(k){const s=shiftsOn(k);return s.length?s.map(x=>x.kind==='shift'&&x.start_time?`<span class="tm" style="color:${timeCol(x.start_time)}">${st(x.start_time)}${x.end_time?'–'+st(x.end_time):''}</span>${x.label?`<span class="sj">${esc(x.label)}</span>`:''}`:chip(x)).join(' '):'<span class="sj">No shift</span>'}
+function renderRoster(){
+  if(!$('rname'))return;
+  $('rname').textContent='🚆 '+getRName();
+  $('rt0').innerHTML=dayChips(ymd(new Date()));$('rt1').innerHTML=dayChips(ymd(addDays(new Date(),1)));
+}
+let wview=new Date();wview.setDate(1);
+const st=t=>t?hm(t).replace(/^0/,''):'';
+function renderWork(){
+  const y=wview.getFullYear(),m=wview.getMonth();
+  $('wname').textContent='Work · '+wview.toLocaleDateString([],{month:'long',year:'numeric'});
+  let h=['M','T','W','T','F','S','S'].map(x=>`<div class="h">${x}</div>`).join('');
+  const off=(new Date(y,m,1).getDay()+6)%7;const start=new Date(y,m,1-off);const today=ymd(new Date());
+  for(let i=0;i<42;i++){
+    const d=addDays(start,i);const k=ymd(d);
+    const s=shiftsOn(k).map(x=>`<i class="${shiftCls(x)}">${esc(x.kind==='leave'||x.kind==='off'?(x.label||'•'):(st(x.start_time)||x.label||'•'))}</i>`).join('');
+    h+=`<div class="w ${d.getMonth()!==m?'o':''} ${k===today?'t':''}" onclick="editShift('${k}')"><b>${d.getDate()}</b>${s}</div>`;
+  }
+  $('wcal').innerHTML=h;
+}
+function wmv(n){wview.setMonth(wview.getMonth()+n);renderWork()}
+function editShift(k){
+  const cur=shiftsOn(k).find(x=>x.user_id===ME);
+  const d=new Date(k+'T00:00');
+  openForm('Your shift · '+d.toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}),'Label (e.g. Link 101)',async(l,s,e)=>{
+    await sb.from('shifts').upsert({household_id:HID,user_id:ME,shift_date:k,label:l,kind:'shift',start_time:s||null,end_time:e||null},{onConflict:'user_id,shift_date'})},
+    {time:true,end:true,value:cur?cur.label||'':'',clear:cur?async()=>{await sb.from('shifts').delete().eq('id',cur.id)}:null});
+  if(cur){$('f2').value=hm(cur.start_time);$('f4').value=hm(cur.end_time)}
+}
+
+function renderUp(){
+  const now=new Date();now.setHours(0,0,0,0);const end=addDays(now,14);
+  const items=[];
+  ev.forEach(x=>{const d=new Date(x.starts_at);if(d>=now&&d<end)items.push({d,id:x.id,all:x.all_day,t:x.title,s:x.all_day?'All day':d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})})});
+  items.sort((a,b)=>a.d-b.d);
+  $('up').innerHTML=items.length?items.map(i=>`<div class="row" style="cursor:pointer" onclick="editEvent('${i.id}')"><div><span class="n">${esc(i.t)}</span><small>${i.d.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})} · ${esc(i.s)}</small></div>${i.shift?`<span class="tag" style="${i.mine?'':'background:#d8f0ed;color:var(--pt)'}">shift</span>`:''}</div>`).join(''):'<p class="ph">Nothing in the next 2 weeks.</p>';
+}
+
+function icon(n){n=n.toLowerCase();return /recycl/.test(n)?'♻️':/green|garden|lawn|mow/.test(n)?'🌿':/bin|rubbish|trash/.test(n)?'🗑️':/dish/.test(n)?'🍽️':/wash|laundry/.test(n)?'🧺':'🧹'}
+
+const openG={};
+function toggleG(k){openG[k]=!openG[k];render()}
+const RANK={over:0,soon:1,'':2,ok:3};
+function grouped(key,items){ // items: [{st,html}]
+  const act=items.filter(x=>x.st!=='ok').sort((a,b)=>RANK[a.st]-RANK[b.st]),done=items.filter(x=>x.st==='ok');
+  let h=act.map(x=>x.html).join('');
+  if(done.length)h+=`<div class="doneg" onclick="toggleG('${key}')">✅ ${done.length} done ${openG[key]?'▲':'▼'}</div>`+(openG[key]?done.map(x=>x.html).join(''):'');
+  return h}
+function chipTxt(due,st,lastDone,word){
+  if(st==='ok')return word+' '+new Date(lastDone).toLocaleDateString([],{day:'numeric',month:'short'});
+  if(!due)return 'Not done yet';
+  const d=dayDiff(due);
+  if(st==='over')return '⚠ OVERDUE '+(-d)+'d';
+  if(d===0)return 'TODAY';if(d===1)return 'Tomorrow';if(d<=6)return fmtD(due).split(',')[0]+' ('+d+'d)';
+  return fmtD(due).replace(',','')}
+const T0=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const dayDiff=due=>Math.round((new Date(due+'T00:00')-T0())/864e5);
+// ok = done/paid, soon = due soon (red), over = overdue (dramatic), '' = nothing to flag
+function dueState(due,lastDone,repeat,maxSoon){
+  const soonDays=repeat?Math.min(maxSoon,Math.floor(repeat/2)):maxSoon;
+  if(!repeat&&lastDone)return 'ok';
+  if(!due)return lastDone?'ok':'';
+  const d=dayDiff(due);
+  if(d<0)return 'over';
+  if(lastDone&&repeat&&d>soonDays)return 'ok';
+  if(d<=soonDays)return 'soon';
+  return '';
+}
+function dueText(due,st,lastDone,doneWord){
+  const d=due?dayDiff(due):null,when=due?fmtD(due):'';
+  if(st==='ok')return doneWord+' '+new Date(lastDone).toLocaleDateString([],{day:'numeric',month:'short'})+(due?' · next '+when:'');
+  if(st==='over')return '⚠ OVERDUE by '+(-d)+' day'+(d===-1?'':'s');
+  if(st==='soon')return d===0?'Due TODAY':d===1?'Due tomorrow':'Due '+when+' (in '+d+' days)';
+  return due?'Due '+when+(d>1?' (in '+d+' days)':''):'Not done yet';
+}
+function renderChores(){
+  $('chores').innerHTML=ch.length?grouped('chores',ch.map(c=>{
+    const st=dueState(c.next_due,c.last_done_at,c.repeat_days,2);
+    return {st,html:`<div class="row sx st-${st}"><div style="display:flex;align-items:center"><span class="ico">${st==='ok'?'✅':st==='over'?'🚨':icon(c.name)}</span><div><span class="n" onclick="editChore('${c.id}')">${esc(c.name)}</span><small>${asTag(c.assignee)} ${chipTxt(c.next_due,st,c.last_done_at,'Done')}</small></div></div>${st==='ok'?`<button class="okb" onclick="undoChore('${c.id}')">✓</button>`:`<button onclick="doneChore('${c.id}')">Done</button>`}</div>`}
+  })):'<p class="ph">No chores yet. Tap +.</p>';
+}
+function renderTodos(){
+  $('todos').innerHTML=td.length?grouped('todos',td.map(t=>({st:t.done?'ok':'',html:`<div class="row sx st-${t.done?'ok':''}"><div style="display:flex;align-items:center;cursor:pointer" onclick="toggleTodo('${t.id}',${!t.done})"><span class="ico">${t.done?'✅':'○'}</span><div><span class="n">${esc(t.title)}</span><small onclick="event.stopPropagation();editTodo('${t.id}')" style="cursor:pointer">${asTag(t.assignee)||'Anyone'} ✎</small></div></div>${t.done?`<button onclick="delTodo('${t.id}')">✕</button>`:''}</div>`}))):'<p class="ph">All good. Add anything small that would be nice to get done.</p>';
+}
+function renderMeals(){
+  if(!$('m0'))return;
+  [0,1].forEach(i=>{const k=ymd(addDays(new Date(),i));const m=ml.find(x=>x.meal_date===k);const el=$('m'+i);el.textContent=m?m.dinner:'Tap to plan';el.className=m?'set':''});
+}
+
+const OWN={kim:['Kim','#a8d0e6','#1c3d52'],cat:['Cat','#fcc8e0','#6b2142'],both:['Kim & Cat','#4a90e2','#fff'],birthday:['Birthdays','#2e9e4f','#fff'],holiday:['Holidays','#ff8000','#fff']};
+const own=e=>e.pet_id||e.owner==='family'?'both':(e.owner||'kim');
+const evOn=(x,k)=>{const d=ymd(new Date(x.starts_at));if(x.owner==='birthday')return d.slice(5)===k.slice(5)&&k>=d;if(x.owner==='holiday'&&x.end_date)return k>=d&&k<=x.end_date;return d===k};
+const fOk=o=>o==='kim'?flt.kim!==0:o==='cat'?flt.cat!==0:o==='both'?(flt.kim!==0||flt.cat!==0):true;
+const OWNOPTS=[['kim','Kim'],['cat','Cat'],['both','Kim & Cat'],['birthday','Birthday / Anniversary (every year)']];
+let flt={kim:1,cat:1};try{Object.assign(flt,JSON.parse(localStorage.getItem('fridge_flt')||'{}'))}catch(e){}
+let cv='month';try{cv=localStorage.getItem('fridge_cv')||'month'}catch(e){}
+const mon=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
+let anch=mon(new Date());
+const PH={};
+[['2026-01-01',"New Year's Day"],['2026-01-26','Australia Day'],['2026-04-03','Good Friday'],['2026-04-04','Easter Saturday'],['2026-04-05','Easter Sunday'],['2026-04-06','Easter Monday'],['2026-04-25','Anzac Day'],['2026-05-04','Labour Day'],['2026-08-12','Ekka (Royal Qld Show)'],['2026-10-05',"King's Birthday"],['2026-12-24','Christmas Eve (6pm)'],['2026-12-25','Christmas Day'],['2026-12-26','Boxing Day'],['2026-12-28','Boxing Day (observed)'],
+ ['2027-01-01',"New Year's Day"],['2027-01-26','Australia Day'],['2027-03-26','Good Friday'],['2027-03-27','Easter Saturday'],['2027-03-28','Easter Sunday'],['2027-03-29','Easter Monday'],['2027-04-26','Anzac Day (observed)'],['2027-05-03','Labour Day'],['2027-08-11','Ekka (Royal Qld Show)'],['2027-10-04',"King's Birthday"],['2027-12-24','Christmas Eve (6pm)'],['2027-12-25','Christmas Day'],['2027-12-26','Boxing Day'],['2027-12-27','Christmas Day (observed)'],['2027-12-28','Boxing Day (observed)'],
+ ['2028-01-01',"New Year's Day"],['2028-01-03',"New Year's Day (observed)"],['2028-01-26','Australia Day'],['2028-04-14','Good Friday'],['2028-04-15','Easter Saturday'],['2028-04-16','Easter Sunday'],['2028-04-17','Easter Monday'],['2028-04-25','Anzac Day'],['2028-05-01','Labour Day'],['2028-08-16','Ekka (Royal Qld Show)'],['2028-10-02',"King's Birthday"],['2028-12-24','Christmas Eve (6pm)'],['2028-12-25','Christmas Day'],['2028-12-26','Boxing Day']
+].forEach(x=>PH[x[0]]=x[1]);
+function renderPills(){
+  $('prow').innerHTML=['kim','cat'].map(k=>`<button class="pill ${flt[k]?'on':''}" style="background:${OWN[k][1]};color:${OWN[k][2]}" onclick="togF('${k}')">${OWN[k][0]}</button>`).join('')+
+   `<select class="vsel" onchange="setCv(this.value)"><option value="tri" ${cv==='tri'?'selected':''}>3 weeks</option><option value="month" ${cv==='month'?'selected':''}>Month</option><option value="week" ${cv==='week'?'selected':''}>Week</option></select><button class="pill on" style="background:#fff;border:2px solid #0f766e;color:#0f766e" onclick="addBill()">＋ Bill</button><button class="pill on" style="background:#fff;border:2px solid #ff8000;color:#c25f00" onclick="addTrip()">＋ Holiday</button><button class="addev" onclick="addEvent(new Date(),true)">＋ Add Event</button>`;
+}
+function togF(k){flt[k]=flt[k]?0:1;try{localStorage.setItem('fridge_flt',JSON.stringify(flt))}catch(e){}renderPills();renderCal()}
+function setCv(v){cv=v;try{localStorage.setItem('fridge_cv',v)}catch(e){}renderCal();renderPills()}
+function goToday(){view=new Date();view.setDate(1);anch=mon(new Date());renderCal()}
+function openDay(ts){const d=new Date(ts),k=ymd(d);$('dayt').textContent=d.toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'});
+  const rows=[];const sf=shiftsOn(k);
+  if(sf.length)rows.push(`<div class="row"><span>Roster</span><span style="display:flex;gap:4px">${sf.map(chip).join('')}</span></div>`);
+  if(PH[k])rows.push(`<div class="row"><b>${esc(PH[k])}</b><small>Public holiday</small></div>`);
+  ev.filter(x=>evOn(x,k)).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at)).forEach(e=>{const o=OWN[own(e)]||OWN.kim;const t=e.owner==='holiday'?'✈':e.all_day?'All day':new Date(e.starts_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+    const sub=e.owner==='holiday'?[e.location,e.details].filter(Boolean).join(' · '):'';
+    rows.push(`<div class="row" style="cursor:pointer" onclick="$('daym').style.display='none';editEvent('${e.id}')"><span style="display:flex;gap:10px;align-items:center;min-width:0"><i style="width:10px;height:10px;border-radius:50%;background:${o[1]};flex:none"></i><span><b>${esc(e.title)}</b>${sub?`<br><small style="color:var(--mute)">${esc(sub)}</small>`:''}</span></span><small style="color:var(--mute)">${e.owner==='birthday'?'Birthday / Anniversary':t}</small></div>`)});
+  bills.filter(b=>b.due_date===k).forEach(b=>rows.push(`<div class="row" style="cursor:pointer" onclick="$('daym').style.display='none';editBill('${b.id}')"><b>${esc(b.name)}</b><small>${b.amount!=null?money(b.amount):''}</small></div>`));
+  ch.filter(c=>c.next_due===k).forEach(c=>rows.push(`<div class="row"><b>${esc(c.name)}</b><small style="color:var(--mute)">Chore${c.assignee?' · '+(ASSIGN.find(o=>o[0]===c.assignee)||['',''])[1]:''}</small></div>`));
+  pit.filter(i=>i.next_due===k).forEach(i=>{const p=pets.find(x=>x.id===i.pet_id);rows.push(`<div class="row"><b>${esc((p?p.name+': ':'')+i.name)}</b><small style="color:var(--mute)">Pet due</small></div>`)});
+  $('dayb').innerHTML=rows.length?rows.join(''):'<p class="ph">Nothing on this day.</p>';
+  $('dayadd').onclick=()=>{$('daym').style.display='none';addEvent(d)};$('daym').style.display='flex'}
+function renderCal(){
+  const today=ymd(new Date());let start,rows,title,m=-1;
+  if(cv==='month'){const y=view.getFullYear();m=view.getMonth();const off=(new Date(y,m,1).getDay()+6)%7;start=new Date(y,m,1-off);rows=Math.ceil((off+new Date(y,m+1,0).getDate())/7);title=view.toLocaleDateString([],{month:'long',year:'numeric'})}
+  else{start=new Date(anch);rows=cv==='week'?1:3;const e=addDays(start,rows*7-1);title=start.toLocaleDateString([],{day:'numeric',month:'short'})+' – '+e.toLocaleDateString([],{day:'numeric',month:'short',year:'numeric'})}
+  $('mname').textContent=title;
+  const maxB=cv==='week'?10:cv==='tri'?3:2;
+  let h=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(x=>`<div class="h">${x}</div>`).join('');
+  for(let i=0;i<rows*7;i++){
+    const d=addDays(start,i);const k=ymd(d);
+    const sf=shiftsOn(k),es=ev.filter(x=>evOn(x,k)&&fOk(own(x))).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
+    const blk=[];
+    if(PH[k])blk.push(`<span class="eb" style="background:${OWN.holiday[1]};color:#fff">${esc(PH[k])}</span>`);
+    es.forEach(e=>{const o=OWN[own(e)]||OWN.kim;const trip=e.owner==='holiday';const t=trip?'✈ ':e.all_day?'':'<i>'+new Date(e.starts_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).replace(/\s?(am|pm)/i,'')+'</i>';
+      blk.push(`<span class="eb" style="background:${o[1]};color:${o[2]}" onclick="event.stopPropagation();editEvent('${e.id}')">${t}${esc(e.title)}</span>`)});
+    bills.filter(b=>b.due_date===k).forEach(b=>blk.push(`<span class="eb bill st-${billState(b)}" onclick="event.stopPropagation();editBill('${b.id}')">💲 ${esc(b.name)}${b.amount!=null?' '+money(b.amount):''}</span>`));
+    const shown=blk.slice(0,maxB).join('')+(blk.length>maxB?`<span class="more">+${blk.length-maxB} more</span>`:'');
+    h+=`<div class="cd ${m>=0&&d.getMonth()!==m?'o':''} ${k===today?'t':''} ${cellCls(sf[0])}" onclick="openDay(${d.getTime()})"><div class="dn"><span class="dd"><b>${d.getDate()}</b><small>${d.toLocaleDateString([],{weekday:'short'})}</small></span><span style="display:flex;gap:4px">${sf.map(chip).join('')}</span></div>${shown}</div>`;
+  }
+  $('cal').className='cal bigcal'+(cv==='week'?' wk':'');$('cal').style.gridTemplateRows='auto repeat('+rows+',1fr)';
+  $('cal').innerHTML=h;
+}
+function mv(n){if(cv==='month'){view.setMonth(view.getMonth()+n)}else anch=addDays(anch,7*n);renderCal()}
+function openForm(title,ph,okFn,opts={}){
+  $('ftitle').textContent=title;$('f1').placeholder=ph;$('f1').value=opts.value||'';
+  $('f2').style.display=opts.time?'block':'none';$('f2').value='';
+  $('f3').style.display=(opts.repeat||opts.num)?'block':'none';$('f3').value='';
+  $('f4').style.display=opts.end?'block':'none';$('f4').value='';
+  $('f2').title='Start time';$('f4').title='End time';
+  $('f5').style.display=opts.date?'block':'none';$('f5').value=opts.dateValue||'';
+  $('f6').style.display=opts.kind?'block':'none';$('f6').innerHTML=(opts.kindOpts||[['flea_worm','Flea & worm'],['flea','Flea'],['worm','Worm'],['med','Medication'],['other','Other']]).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');$('f6').value=opts.kindValue||$('f6').options[0].value;
+  $('f7').style.display=opts.assign?'block':'none';$('f7').innerHTML=ASSIGN.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');$('f7').value=opts.assignValue||'';
+  ['f8','f9','f10','l5','l8'].forEach(i=>$(i).style.display=opts.trip?'block':'none');if(opts.trip){$('f8').value=opts.endValue||'';$('f9').value=opts.where||'';$('f10').value=opts.notes||''}
+  $('fclear').style.display=opts.clear?'inline-block':'none';$('fclear').onclick=async()=>{await opts.clear();closeForm();load()};
+  $('fok').onclick=async()=>{if(!$('f1').value.trim())return;if(opts.needDate&&!$('f5').value){$('f5').focus();return}await okFn($('f1').value.trim(),$('f2').value,$('f3').value,{date:$('f5').value,kind:$('f6').value,assign:$('f7').value||null,end:$('f8').value,where:$('f9').value.trim(),notes:$('f10').value.trim()});closeForm();load()};
+  $('form').style.display='flex';$('f1').focus();
+}
+function closeForm(){$('form').style.display='none'}
+
+function addEvent(d,pick){openForm(pick?'New event':'New event · '+d.toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}),'What\'s on?',async(t,time,_,x)=>{
+  const dt=pick&&x.date?new Date(x.date+'T00:00'):new Date(d);const all=!time;if(time){const[hh,mm]=time.split(':');dt.setHours(+hh,+mm,0,0)}else dt.setHours(0,0,0,0);
+  await sb.from('events').insert({household_id:HID,title:t,starts_at:dt.toISOString(),all_day:all,owner:x.kind})},{time:true,kind:true,kindOpts:OWNOPTS,kindValue:'kim',date:!!pick,dateValue:ymd(new Date())})}
+function addTrip(){openForm('New holiday','Holiday name (e.g. Bali)',async(t,_,__,x)=>{
+  const e=x.end&&x.end>=x.date?x.end:x.date;
+  await sb.from('events').insert({household_id:HID,title:t,starts_at:new Date(x.date+'T00:00').toISOString(),all_day:true,owner:'holiday',end_date:e,location:x.where||null,details:x.notes||null})},{trip:true,date:true,needDate:true,dateValue:ymd(new Date()),endValue:ymd(new Date())})}
+function editTrip(e){openForm('Edit holiday','Holiday name',async(t,_,__,x)=>{
+  const en=x.end&&x.end>=x.date?x.end:x.date;
+  await sb.from('events').update({title:t,starts_at:new Date(x.date+'T00:00').toISOString(),end_date:en,location:x.where||null,details:x.notes||null}).eq('id',e.id)},{trip:true,date:true,needDate:true,dateValue:ymd(new Date(e.starts_at)),endValue:e.end_date||'',where:e.location||'',notes:e.details||'',value:e.title,clear:async()=>{await sb.from('events').delete().eq('id',e.id)}})}
+const ASSIGN=[['','Anyone'],['kim','Kim'],['cat','Cat'],['both','Both']];
+const asTag=a=>a?`<span class="as as-${a}">${(ASSIGN.find(o=>o[0]===a)||['',a])[1]}</span>`:'';
+function addChore(){openForm('New chore','e.g. Kitchen bin',async(n,_,r,x)=>{
+  const rep=r?+r:null;
+  await sb.from('chores').insert({household_id:HID,name:n,repeat_days:rep,next_due:x.date||(rep?ymd(new Date()):null),assignee:x.assign})},{repeat:true,date:true,assign:true,dateValue:ymd(new Date())})}
+function editChore(id){const c=ch.find(x=>x.id===id);
+  openForm('Edit chore','Name',async(n,_,r,x)=>{await sb.from('chores').update({name:n,repeat_days:r?+r:null,next_due:x.date||null,assignee:x.assign}).eq('id',id)},
+    {value:c.name,repeat:true,date:true,assign:true,assignValue:c.assignee||'',dateValue:c.next_due||'',clear:async()=>{if(confirm('Delete '+c.name+'?'))await sb.from('chores').delete().eq('id',id)}});
+  $('f3').value=c.repeat_days||'';}
+function addTodo(){openForm('New to-do','What needs doing?',async(t,_,__,x)=>{await sb.from('todos').insert({household_id:HID,title:t,assignee:x.assign})},{assign:true})}
+function editTodo(id){const t=td.find(x=>x.id===id);openForm('Edit to-do','What needs doing?',async(n,_,__,x)=>{await sb.from('todos').update({title:n,assignee:x.assign}).eq('id',id)},{value:t.title,assign:true,assignValue:t.assignee||'',clear:async()=>{await sb.from('todos').delete().eq('id',id)}})}
+function planMeal(i){
+  const k=ymd(addDays(new Date(),i));const cur=ml.find(x=>x.meal_date===k);
+  openForm(i?'Dinner tomorrow':'Dinner tonight','What\'s for dinner?',async t=>{
+    await sb.from('meals').upsert({household_id:HID,meal_date:k,dinner:t},{onConflict:'household_id,meal_date'})},
+    {value:cur?cur.dinner:'',clear:cur?async()=>{await sb.from('meals').delete().eq('id',cur.id)}:null});
+}
+
+function editEvent(id){
+  const e=ev.find(x=>x.id===id);if(!e)return;if(e.owner==='holiday')return editTrip(e);const d=new Date(e.starts_at);
+  openForm('Edit event · '+d.toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}),'Title',async(t,time,_,x)=>{
+    const dt=new Date(d);if(time){const[hh,mm]=time.split(':');dt.setHours(+hh,+mm,0,0)}else dt.setHours(0,0,0,0);
+    await sb.from('events').update({title:t,starts_at:dt.toISOString(),all_day:!time,owner:x.kind}).eq('id',id)},
+    {time:true,kind:true,kindOpts:OWNOPTS,kindValue:e.owner||'kim',value:e.title,clear:async()=>{await sb.from('events').delete().eq('id',id)}});
+  if(!e.all_day)$('f2').value=pad(d.getHours())+':'+pad(d.getMinutes());
+}
+
+const KIND={flea_worm:['🛡️','Flea & worm'],flea:['🛡️','Flea'],worm:['🪱','Worm'],med:['💊','Medication'],other:['📌','Other']};
+function fmtD(d){return new Date(d+'T00:00').toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})}
+function renderPets(){
+  if(!$('pets'))return;
+  const t0=T0();
+  $('pets').innerHTML=pets.length?pets.map(p=>{
+    const items=pit.filter(i=>i.pet_id===p.id).map(i=>{
+      const st=dueState(i.next_due,i.last_done_at,i.repeat_days,7),k=KIND[i.kind]||KIND.other;
+      return {st,html:`<div class="pi sx st-${st}"><div style="display:flex;align-items:center"><span class="ico">${st==='ok'?'✅':st==='over'?'🚨':k[0]}</span><div><span class="pn" onclick="editPetItem('${i.id}')">${esc(i.name)}</span><small>${chipTxt(i.next_due,st,i.last_done_at,'Given')}</small></div></div>${st==='ok'?`<button class="okb" onclick="undoPetItem('${i.id}')">✓</button>`:`<button onclick="givePetItem('${i.id}')">Given</button>`}</div>`}});
+    ev.filter(e=>e.pet_id===p.id&&new Date(e.starts_at)>=t0).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at)).slice(0,3).forEach(e=>{
+      const d=new Date(e.starts_at),dd=Math.round((new Date(e.starts_at).setHours(0,0,0,0)-t0)/864e5),st=dd<=2?'soon':'';
+      items.push({st,html:`<div class="pi sx st-${st}"><div style="display:flex;align-items:center"><span class="ico">🏥</span><div><span class="pn" onclick="editEvent('${e.id}')">${esc(e.title.replace(/^Vet · [^:]+: /,'Vet: '))}</span><small>${dd===0?'TODAY':dd===1?'Tomorrow':d.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})}${e.all_day?'':' · '+d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</small></div></div></div>`})});
+    return `<div class="pet"><h4><span onclick="editPet('${p.id}')">🐾 ${esc(p.name)}</span><span class="acts"><button onclick="addPetItem('${p.id}')">+ Treat</button><button onclick="addVet('${p.id}')">+ Vet</button></span></h4>${grouped('pet'+p.id,items)}</div>`}).join(''):'<p class="ph">Tap + Pet to add a pet.</p>';
+}
+function addPet(){openForm('New pet','Pet name',async n=>{await sb.from('pets').insert({household_id:HID,name:n})})}
+function editPet(id){const p=pets.find(x=>x.id===id);openForm('Edit pet','Pet name',async n=>{await sb.from('pets').update({name:n}).eq('id',id)},{value:p.name,clear:async()=>{if(confirm('Delete '+p.name+' and all their treatments?'))await sb.from('pets').delete().eq('id',id)}})}
+function addPetItem(pid){const p=pets.find(x=>x.id===pid);
+  openForm('New treatment · '+p.name,'Name (e.g. NexGard, Heartworm)',async(n,_,r,x)=>{
+    const rep=r?+r:null;await sb.from('pet_items').insert({household_id:HID,pet_id:pid,kind:x.kind,name:n,repeat_days:rep,next_due:x.date||ymd(new Date())})},
+    {repeat:true,kind:true,date:true,dateValue:ymd(new Date())});
+  $('f3').placeholder='Repeat every X days (monthly = 30, blank = once)';
+}
+function editPetItem(id){const i=pit.find(x=>x.id===id);
+  openForm('Edit treatment','Name',async(n,_,r,x)=>{await sb.from('pet_items').update({name:n,kind:x.kind,repeat_days:r?+r:null,next_due:x.date||null}).eq('id',id)},
+    {value:i.name,repeat:true,kind:true,date:true,dateValue:i.next_due||'',clear:async()=>{await sb.from('pet_items').delete().eq('id',id)}});
+  $('f3').value=i.repeat_days||'';$('f6').value=i.kind||'med';$('f3').placeholder='Repeat every X days (monthly = 30, blank = once)';
+}
+async function givePetItem(id){const i=pit.find(x=>x.id===id);
+  const upd={last_done_at:new Date().toISOString(),last_done_by:ME};
+  if(i.repeat_days)upd.next_due=ymd(addDays(new Date(),i.repeat_days));
+  await sb.from('pet_items').update(upd).eq('id',id);load()}
+async function undoPetItem(id){const i=pit.find(x=>x.id===id);
+  await sb.from('pet_items').update({last_done_at:null,last_done_by:null,next_due:i.repeat_days?ymd(new Date()):i.next_due}).eq('id',id);load()}
+function addVet(pid){const p=pets.find(x=>x.id===pid);
+  openForm('Vet appointment · '+p.name,'What for? (e.g. Vaccination)',async(t,time,_,x)=>{
+    const dt=new Date(x.date+'T00:00');if(time){const[hh,mm]=time.split(':');dt.setHours(+hh,+mm,0,0)}
+    await sb.from('events').insert({household_id:HID,title:'Vet · '+p.name+': '+t,starts_at:dt.toISOString(),all_day:!time,pet_id:pid,owner:'family'})},
+    {time:true,date:true,needDate:true})}
+
+const FREQ=[['monthly','Monthly'],['fortnightly','Fortnightly'],['weekly','Weekly'],['quarterly','Quarterly'],['yearly','Yearly'],['once','One-off']];
+const FREQ_DAYS={weekly:7,fortnightly:14,monthly:30,quarterly:90,yearly:365,once:0};
+function addPeriod(due,f){const d=new Date(due+'T00:00');
+  if(f==='weekly')d.setDate(d.getDate()+7);else if(f==='fortnightly')d.setDate(d.getDate()+14);
+  else{const n=f==='quarterly'?3:f==='yearly'?12:1,day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()))}
+  return ymd(d)}
+const money=a=>a==null||a===''?'':'$'+Number(a).toLocaleString(undefined,{minimumFractionDigits:Number(a)%1?2:0,maximumFractionDigits:2});
+function billState(b){return dueState(b.due_date,b.last_paid_at,FREQ_DAYS[b.repeat]||0,7)}
+function renderBills(){
+  if(!$('bills'))return;
+  const upcoming=bills.filter(b=>billState(b)!=='ok'&&dayDiff(b.due_date)<=14&&b.amount!=null);
+  const tot=upcoming.reduce((a,b)=>a+Number(b.amount||0),0);
+  $('billsum').textContent=upcoming.length&&tot?'Next 14 days: '+money(tot):'';
+  $('bills').innerHTML=bills.length?grouped('bills',bills.slice().sort((a,b)=>a.due_date<b.due_date?-1:1).map(b=>{
+    const st=billState(b);
+    return {st,html:`<div class="row sx st-${st}"><div style="display:flex;align-items:center"><span class="ico">${st==='ok'?'✅':st==='over'?'🚨':'💲'}</span><div><span class="n" onclick="editBill('${b.id}')">${esc(b.name)}${b.amount!=null?' · '+money(b.amount):''}</span><small>${asTag(b.assignee)} ${chipTxt(b.due_date,st,b.last_paid_at,'Paid')}</small></div></div>${st==='ok'?`<button class="okb" onclick="undoBill('${b.id}')">✓</button>`:`<button onclick="payBill('${b.id}')">Paid</button>`}</div>`}
+  })):'<p class="ph">No bills yet. Tap +.</p>';
+}
+function addBill(){openForm('New bill','Bill name (e.g. Power)',async(n,_,a,x)=>{
+    await sb.from('bills').insert({household_id:HID,name:n,amount:a?+a:null,due_date:x.date,repeat:x.kind,assignee:x.assign})},
+    {num:true,kind:true,kindOpts:FREQ,date:true,needDate:true,assign:true});
+  $('f3').placeholder='Amount in $ (optional)'}
+function editBill(id){const b=bills.find(x=>x.id===id);
+  openForm('Edit bill','Bill name',async(n,_,a,x)=>{await sb.from('bills').update({name:n,amount:a?+a:null,due_date:x.date||b.due_date,repeat:x.kind,assignee:x.assign}).eq('id',id)},
+    {assign:true,assignValue:b.assignee||'',value:b.name,num:true,kind:true,kindOpts:FREQ,kindValue:b.repeat||'monthly',date:true,needDate:true,dateValue:b.due_date,clear:async()=>{if(confirm('Delete '+b.name+'?'))await sb.from('bills').delete().eq('id',id)}});
+  $('f3').value=b.amount==null?'':b.amount;$('f3').placeholder='Amount in $ (optional)'}
+async function payBill(id){const b=bills.find(x=>x.id===id);
+  const upd={last_paid_at:new Date().toISOString(),last_paid_by:ME,prev_due:b.due_date};
+  if(FREQ_DAYS[b.repeat]){let n=addPeriod(b.due_date,b.repeat);while(dayDiff(n)<0)n=addPeriod(n,b.repeat);upd.due_date=n}
+  await sb.from('bills').update(upd).eq('id',id);load()}
+async function undoBill(id){const b=bills.find(x=>x.id===id);
+  await sb.from('bills').update({last_paid_at:null,last_paid_by:null,due_date:b.prev_due||b.due_date}).eq('id',id);load()}
+async function doneChore(id){
+  const c=ch.find(x=>x.id===id);
+  const upd={last_done_at:new Date().toISOString(),last_done_by:ME};
+  if(c.repeat_days)upd.next_due=ymd(addDays(new Date(),c.repeat_days));
+  await sb.from('chores').update(upd).eq('id',id);load();
+}
+async function undoChore(id){const c=ch.find(x=>x.id===id);await sb.from('chores').update({last_done_at:null,last_done_by:null,next_due:c.repeat_days?ymd(new Date()):null}).eq('id',id);load()}
+async function toggleTodo(id,v){await sb.from('todos').update({done:v,done_at:v?new Date().toISOString():null}).eq('id',id);load()}
+async function delTodo(id){await sb.from('todos').delete().eq('id',id);load()}
+
+const MSGS=["Start the day with generosity.", "Be kind to yourself today.", "Dream big, start small.", "Today, choose warmth.", "Your best is enough.", "A little calm goes a long way.", "Make room for curiosity today.", "Share some fresh air today.", "Today, choose laughter.", "Everything will work out.", "Today is made better by joy.", "Share some gratitude today.", "Find courage in the little things.", "Good vibes only.", "Smile, it's contagious.", "Start the day with love.", "Make room for laughter today.", "Let warmth lead the way today.", "Create a day you'll love.", "Make room for honesty today.", "Love makes the ordinary special.", "Find focus in the little things.", "Today, choose energy.", "Carry honesty with you today.", "Bring some kind words into someone's day.", "A little fresh air goes a long way.", "Today is a fresh start.", "Start the day with curiosity.", "Bring some humility into someone's day.", "End the day with kindness.", "Bring some small wins into someone's day.", "Carry quiet moments with you today.", "Celebrate how far you've come.", "A little honesty goes a long way.", "End the day with a big smile.", "Cherish the everyday.", "Find energy in the little things.", "Happiness is homemade.", "Make room for patience today.", "Start the day with a big smile.", "Let joy lead the way today.", "Share some slow mornings today.", "A little confidence goes a long way.", "Take pride in the small wins.", "Start where you are.", "Every moment is a fresh beginning.", "Trust the process.", "Love is the answer.", "Gratitude turns enough into plenty.", "Today's a great day to start something.", "Find patience in the little things.", "Let energy lead the way today.", "End the day with honesty.", "End the day with courage.", "A little laughter goes a long way.", "Bring some curiosity into someone's day.", "A little a big smile goes a long way.", "Spread a little happiness.", "Share some love today.", "Progress, not perfection.", "Hope is a good breakfast.", "Share some a big smile today.", "Home is where we're together.", "End the day with laughter.", "Let humility lead the way today.", "Find joy in the little things.", "Wherever you go, bring the sunshine.", "Today is made better by slow mornings.", "Start the day with patience.", "Do something that makes you happy.", "Share some laughter today.", "Today, choose honesty.", "Gratitude makes everything better.", "Let gratitude lead the way today.", "Make room for good company today.", "Today is a gift.", "Start the day with kind words.", "Carry gratitude with you today.", "Be a little kinder than necessary.", "Be the reason someone smiles today.", "Make today ordinary and wonderful.", "A little curiosity goes a long way.", "Carry joy with you today.", "A little generosity goes a long way.", "End the day with gratitude.", "Today is made better by honesty.", "The little things are the big things.", "Find good company in the little things.", "Nothing is impossible with a plan.", "Bring some patience into someone's day.", "Today, choose humility.", "Make it count.", "Carry good company with you today.", "Today is made better by kind words.", "End the day with hope.", "Say yes to something good today.", "Find calm in the little things.", "Carry hope with you today.", "Start the day with confidence.", "Make room for hope today.", "Today is made better by hope.", "Every day is a chance to grow.", "Let confidence lead the way today.", "Bring some good company into someone's day.", "Make room for peace today.", "Let kindness lead the way today.", "Make room for gratitude today.", "Find slow mornings in the little things.", "Start the day with peace.", "Carry calm with you today.", "End the day with quiet moments.", "Share some humility today.", "Start the day with small wins.", "A little warmth goes a long way.", "Start the day with honesty.", "Bring some joy into someone's day.", "Make room for confidence today.", "Carry focus with you today.", "Today, choose good company.", "Today is made better by small wins.", "Today, choose hope.", "A little humility goes a long way.", "Make room for calm today.", "Bring some generosity into someone's day.", "Make room for love today.", "Share a laugh with someone you love.", "Start the day with kindness.", "Do what you can, with what you have.", "Start the day with fresh air.", "Today, choose slow mornings.", "Make room for fresh air today.", "Bring some gratitude into someone's day.", "Peace begins with a smile.", "End the day with focus.", "Let kind words lead the way today.", "Today is made better by calm.", "Make room for a big smile today.", "Carry slow mornings with you today.", "Today is made better by a big smile.", "You are exactly where you need to be.", "Today is made better by focus.", "Today is made better by quiet moments.", "Bring some courage into someone's day.", "Today is made better by love.", "Find kind words in the little things.", "Today, choose courage.", "Find fresh air in the little things.", "You're doing better than you think.", "Today is made better by gratitude.", "Start the day with quiet moments.", "Start the day with warmth.", "End the day with slow mornings.", "Carry kind words with you today.", "Bring some hope into someone's day.", "Enjoy the little moments.", "End the day with small wins.", "Be the energy you want to attract.", "End the day with generosity.", "Share some patience today.", "End the day with patience.", "Bring some focus into someone's day.", "Today, choose quiet moments.", "Bring some quiet moments into someone's day.", "Today is made better by patience.", "Today, choose love.", "Today is made better by laughter.", "One day at a time.", "The best is yet to come.", "Make room for generosity today.", "Let slow mornings lead the way today.", "Bring some fresh air into someone's day.", "A little peace goes a long way.", "End the day with joy.", "Choose joy, even in small things.", "Make today a good one.", "Carry fresh air with you today.", "Do one thing today your future self will thank you for.", "Carry a big smile with you today.", "Start the day with courage.", "Share some confidence today.", "Make room for humility today.", "You've got this today.", "Find generosity in the little things.", "Make room for joy today.", "A little kind words goes a long way.", "Keep smiling, it suits you.", "Laugh a little, worry a little less.", "Make room for kind words today.", "Carry kindness with you today.", "Let it go and move forward.", "You are stronger than you know.", "A little quiet moments goes a long way.", "Today is full of possibility.", "Share some generosity today.", "End the day with calm.", "A little slow mornings goes a long way.", "Your effort matters.", "Let honesty lead the way today.", "Find warmth in the little things.", "Today is yours.", "Happy hearts make happy homes.", "Today is made better by courage.", "Start the day with good company.", "Carry generosity with you today.", "A little patience goes a long way.", "Breathe. One thing at a time.", "Today, choose generosity.", "End the day with curiosity.", "Today, choose curiosity.", "Find humility in the little things.", "Find gratitude in the little things.", "Share some curiosity today.", "Make room for small wins today.", "Be bold, be brave, be you.", "Share some courage today.", "Carry laughter with you today.", "Hug someone you love today.", "Let courage lead the way today.", "Make room for kindness today.", "Today is made better by peace.", "Small steps still move you forward.", "Today I choose happiness.", "Keep your face to the sunshine.", "Start the day with slow mornings.", "Bring some laughter into someone's day.", "Let love lead the way today.", "End the day with kind words.", "Good things take time.", "Today is made better by confidence.", "Let curiosity lead the way today.", "Start the day with focus.", "Let focus lead the way today.", "Great things never come from comfort zones.", "Take it one step at a time.", "Hard work always pays off.", "Share some honesty today.", "You're a work in progress, and that's okay.", "Bring some warmth into someone's day.", "End the day with energy.", "Take a deep breath, you've got this.", "Bring some kindness into someone's day.", "Start the day with hope.", "Make room for warmth today.", "Share some small wins today.", "Carry love with you today.", "Today is made better by kindness.", "Share some joy today.", "Start the day with energy.", "Bring some confidence into someone's day.", "Surround yourself with good people.", "Make room for courage today.", "Today, choose kindness.", "Find small wins in the little things.", "Finish the day proud.", "Carry energy with you today.", "Bring some energy into someone's day.", "Today, choose joy.", "Today, choose small wins.", "Start the day with gratitude.", "Be present, be thankful.", "End the day with fresh air.", "Share some kindness today.", "Share some good company today.", "Today is made better by warmth.", "Love what you do today.", "You deserve good things.", "A little hope goes a long way.", "A little focus goes a long way.", "Be proud of how far you've come.", "Carry curiosity with you today.", "Today is made better by generosity.", "Carry courage with you today.", "End the day with confidence.", "Start the day with calm.", "A little small wins goes a long way.", "Keep going, you're doing great.", "Share some focus today.", "A little courage goes a long way.", "Stay curious, stay kind.", "Bring some slow mornings into someone's day.", "Today, choose focus.", "Today is made better by good company.", "Let hope lead the way today.", "Find curiosity in the little things.", "A little good company goes a long way.", "Find a big smile in the little things.", "Be grateful for what you have.", "Better days are coming.", "Bring some love into someone's day.", "End the day with warmth.", "Share some quiet moments today.", "Let good company lead the way today.", "Let today be easy.", "Bring some a big smile into someone's day.", "Find honesty in the little things.", "Find quiet moments in the little things.", "Make room for quiet moments today.", "Let laughter lead the way today.", "Find confidence in the little things.", "Today is made better by curiosity.", "Share some warmth today.", "Start the day with humility.", "Share some kind words today.", "End the day with peace.", "You're loved more than you know.", "Today, choose gratitude.", "Today is made better by fresh air.", "A little gratitude goes a long way.", "Find laughter in the little things.", "Find hope in the little things.", "Carry confidence with you today.", "Let small wins lead the way today.", "Make room for focus today.", "Bring some calm into someone's day.", "Find love in the little things.", "End the day with humility.", "Carry warmth with you today.", "A little kindness goes a long way.", "End the day with good company.", "Carry small wins with you today.", "Today, choose peace.", "Every sunrise is a new beginning.", "A little energy goes a long way.", "Home is the best place to be.", "Let generosity lead the way today.", "Be gentle, the world is heavy enough.", "Today, choose a big smile.", "Share some peace today.", "You've survived every hard day so far.", "Sunny days are on the way.", "Share some energy today.", "Let calm lead the way today.", "Bring some peace into someone's day.", "Another day, another chance.", "Carry humility with you today.", "Courage is one step more.", "Make room for slow mornings today.", "Start the day with laughter.", "A positive mind finds a way.", "Today is made better by energy.", "You make a difference.", "Today, choose patience.", "Focus on what you can control.", "A little joy goes a long way.", "Today, choose kind words.", "Find peace in the little things.", "Look for the good in today.", "Let quiet moments lead the way today.", "Today, choose fresh air.", "Let fresh air lead the way today.", "Let patience lead the way today.", "Make memories, not excuses.", "Let peace lead the way today.", "Together we can do anything.", "End the day with love.", "Make room for energy today.", "Little by little, a little becomes a lot.", "Carry patience with you today.", "Believe in yourself.", "A little love goes a long way.", "Today, choose confidence.", "Slow down and enjoy the ride.", "Kindness costs nothing and means everything.", "Find kindness in the little things.", "Bring some honesty into someone's day.", "Be patient with yourself."];
+function dayMsg(){const n=new Date(),d=Math.floor((n-new Date(n.getFullYear(),0,0))/864e5);$('tmsg').textContent='“'+MSGS[d%MSGS.length]+'”'}
+function tick(){dayMsg();if(typeof ev!=='undefined')renderToday();const n=new Date();$('clock').textContent=n.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).replace(/\s?(am|pm)/i,'');$('cdate').textContent=n.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})}
+let timers=[];try{timers=JSON.parse(localStorage.getItem('fridge_timers')||'[]')}catch(e){}
+let actx=null,lastBeep=0;
+const saveT=()=>{try{localStorage.setItem('fridge_timers',JSON.stringify(timers))}catch(e){}};
+document.addEventListener('pointerdown',()=>{try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();actx.resume()}catch(e){}});
+function beep(){try{if(!actx)return;[0,.3,.6].forEach(t=>{const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;g.gain.value=.25;o.connect(g);g.connect(actx.destination);o.start(actx.currentTime+t);o.stop(actx.currentTime+t+.18)})}catch(e){}}
+const fmtT=sec=>{const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(s).padStart(2,'0')};
+function addTimer(min,label){if(!min||min<=0)return;if(timers.length>=3){alert('3 timers at once is the limit');return}
+  timers.push({id:Date.now()+Math.random(),end:Date.now()+min*60000,label:label||(min>=60?(min/60)+' hr':min+' min')});saveT();$('tlabel').value='';$('tmin').value='';tickT()}
+function dismissT(id,e){if(e)e.stopPropagation();timers=timers.filter(t=>t.id!==id);saveT();tickT()}
+const LOCS=[['fridge','Fridge'],['pantry','Pantry'],['freezer','Freezer'],['leftovers','Leftovers']];
+const nm=x=>String(x||'').trim().toLowerCase();
+function openPantry(){$('pan').style.display='flex';renderPan()}
+function ptab(t){ptb=t;renderPan()}
+function renderPan(){
+  document.querySelectorAll('#pan .tabs button[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===ptb));
+  const a=$('padd'),b=$('pbody');
+  if(ptb==='shop'){
+    a.style.display='flex';a.innerHTML='<input id="pn" placeholder="Add to shopping list" onkeydown="if(event.key===\'Enter\')addShop()"><input id="pq" placeholder="Qty" style="max-width:90px"><button class="p" onclick="addShop()">Add</button>';
+    const done=shop.filter(x=>x.checked).length;
+    b.innerHTML=(shop.length?shop.map(x=>{const have=stock.some(y=>nm(y.name)===nm(x.name));
+      return `<div class="sr ${x.checked?'ck':''}" onclick="togShop('${x.id}')"><span>${x.checked?'☑':'☐'}</span><span>${esc(x.name)}${x.qty?' <small>'+esc(x.qty)+'</small>':''}</span>${have&&!x.checked?'<em>✓ in '+esc(stock.find(y=>nm(y.name)===nm(x.name)).location)+'</em>':''}<span class="x" onclick="delShop('${x.id}',event)">✕</span></div>`}).join(''):'<p class="ph">Shopping list is empty.</p>')
+      +(done?`<button style="margin-top:8px" onclick="clearShop()">Clear ${done} ticked</button>`:'');
+  }else if(ptb==='stock'){
+    a.style.display='flex';a.innerHTML='<input id="pn" placeholder="Add item" onkeydown="if(event.key===\'Enter\')addStock()"><select id="pl">'+LOCS.map(l=>`<option value="${l[0]}">${l[1]}</option>`).join('')+'</select><input id="pd" type="date" title="Use by" style="max-width:150px"><button class="p" onclick="addStock()">Add</button>';
+    b.innerHTML=stock.length?LOCS.map(l=>{const it=stock.filter(x=>x.location===l[0]);return it.length?`<div class="lbl" style="margin-top:8px">${l[1]}</div>`+it.map(x=>{
+      const d=x.use_by?dayDiff(x.use_by):null,c=d==null?'':d<0?'st-over':d<=2?'st-soon':'';
+      return `<div class="sr ${c}"><span>${esc(x.name)}${x.qty?' <small>'+esc(x.qty)+'</small>':''}</span>${x.use_by?`<small>${d<0?'⚠ expired '+(-d)+'d ago':d===0?'use TODAY':'use by '+fmtD(x.use_by)}</small>`:''}<span class="x" onclick="useUp('${x.id}')" title="Used up">✕</span><button onclick="toShop('${x.id}')" title="Add to shopping list">🛒</button></div>`}).join(''):''}).join(''):'<p class="ph">Nothing in stock yet.</p>';
+  }else{
+    a.style.display='none';
+    b.innerHTML=[0,1].map(i=>{const k=ymd(addDays(new Date(),i)),c=ml.find(x=>x.meal_date===k);
+      return `<div class="sr" style="cursor:default"><span><small>${i?'Tomorrow':'Tonight'}</small><br>${c?esc(c.dinner):'<span class="ph">Not planned</span>'}</span><span class="x"></span><button class="p" onclick="planMeal(${i})">${c?'Change':'Plan'}</button>${c?`<button onclick="clearMeal('${c.id}')">Clear</button>`:''}</div>`}).join('');
+  }
+}
+async function addShop(){const n=$('pn').value.trim();if(!n)return;await sb.from('shopping_items').insert({household_id:HID,name:n,qty:$('pq').value.trim()||null});await load()}
+async function togShop(id){const x=shop.find(y=>y.id===id);if(!x)return;x.checked=!x.checked;renderPan();await sb.from('shopping_items').update({checked:x.checked}).eq('id',id)}
+async function delShop(id,e){e.stopPropagation();await sb.from('shopping_items').delete().eq('id',id);await load()}
+async function clearShop(){await sb.from('shopping_items').delete().eq('household_id',HID).eq('checked',true);await load()}
+async function addStock(){const n=$('pn').value.trim();if(!n)return;await sb.from('pantry_items').insert({household_id:HID,name:n,location:$('pl').value,use_by:$('pd').value||null});await load()}
+async function useUp(id){await sb.from('pantry_items').delete().eq('id',id);await load()}
+async function toShop(id){const x=stock.find(y=>y.id===id);if(!x)return;if(!shop.some(y=>!y.checked&&nm(y.name)===nm(x.name)))await sb.from('shopping_items').insert({household_id:HID,name:x.name});ptab('shop');await load()}
+async function clearMeal(id){await sb.from('meals').delete().eq('id',id);await load()}
+const WMO=c=>c===0?['☀️','Sunny']:c<=2?['🌤️','Mostly sunny']:c===3?['☁️','Cloudy']:c<=48?['🌫️','Foggy']:c<=57?['🌦️','Drizzle']:c<=67?['🌧️','Rain']:c<=77?['❄️','Cold & wintry']:c<=82?['🌦️','Showers']:c<=86?['❄️','Snow showers']:['⛈️','Thunderstorms'];
+function getLoc(){try{return JSON.parse(localStorage.getItem('fridge_loc'))||{n:'Brisbane',lat:-27.4698,lon:153.0251}}catch(e){return{n:'Brisbane',lat:-27.4698,lon:153.0251}}}
+async function setLoc(){const q=$('locin').value.trim();if(!q)return;$('locmsg').textContent='Looking up…';
+  try{const r=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&country_code=AU&name='+encodeURIComponent(q))).json();const g=r.results&&r.results[0];
+    if(!g){$('locmsg').textContent='Not found. Try a nearby town.';return}
+    localStorage.setItem('fridge_loc',JSON.stringify({n:g.name,lat:g.latitude,lon:g.longitude}));$('locmsg').textContent='Set to '+g.name+(g.admin1?', '+g.admin1:'');loadWx()}
+  catch(e){$('locmsg').textContent='Could not look that up (offline?).'}}
+function showWx(d){
+  if(!d||!d.current||!d.daily||!d.daily.weather_code||d.daily.weather_code.length<2){$('wx').innerHTML='<p class="ph">Weather unavailable</p>';return}
+  const blk=(i,lab)=>{const w=WMO(d.daily.weather_code[i]),r=d.daily.precipitation_probability_max[i],hi=Math.round(d.daily.temperature_2m_max[i]),lo=Math.round(d.daily.temperature_2m_min[i]);
+    if(i===1)return `<div class="wxd"><div><h6>${lab}</h6><small><b>${hi}°</b> ${w[1]} · ${lo}° · ${r}%</small></div><span class="wi">${w[0]}</span></div>`;
+    return `<div class="wxd"><div><h6>${lab}${r>=50?' <span class="rn">☂ Rain</span>':''}</h6><b>${Math.round(d.current.temperature_2m)}°</b><small>${w[1]}<br>${hi}° / ${lo}° · ${r}%</small></div><span class="wi">${w[0]}</span></div>`};
+  $('wx').innerHTML=blk(0,'Today')+blk(1,'Tomorrow');
+}
+async function loadWx(){
+  const l=getLoc();
+  try{const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${l.lat}&longitude=${l.lon}&current=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=2`);
+    const d=await r.json();if(!d.current)throw 0;try{localStorage.setItem('fridge_wx',JSON.stringify(d))}catch(e){}showWx(d)}
+  catch(e){try{showWx(JSON.parse(localStorage.getItem('fridge_wx')))}catch(x){}}
+}
+function renderToday(){
+  if(!$('tev'))return;const k=ymd(new Date());
+  renderRoster();
+  const es=ev.filter(x=>evOn(x,k)).sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
+  $('tev').innerHTML=es.length?es.map(e=>`<div class="sr" onclick="editEvent('${e.id}')">${e.all_day?'<b>All day</b>':'<b>'+new Date(e.starts_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).replace(/\s?(am|pm)/i,'')+'</b>'}<span>${esc(e.title)}</span></div>`).join(''):'<p class="ph">No events today.</p>';
+  const due=(d,l,r,m)=>{const s=dueState(d,l,r,m);return d&&s!=='ok'&&dayDiff(d)<=0?s:null};
+  const row=(s,ico,t,fn,btn)=>`<div class="sr st-${s}"><span>${ico}</span><span>${s==='over'?'⚠ ':''}${esc(t)}</span><button onclick="${fn}">${btn}</button></div>`;
+  const dl=[];
+  ch.forEach(c=>{const s=due(c.next_due,c.last_done_at,c.repeat_days,2);if(s)dl.push(row(s,'🧹',c.name+(c.assignee?' · '+(ASSIGN.find(o=>o[0]===c.assignee)||[0,''])[1]:''),`doneChore('${c.id}')`,'Done'))});
+  bills.forEach(b=>{const s=due(b.due_date,b.last_paid_at,FREQ_DAYS[b.repeat]||0,7);if(s)dl.push(row(s,'💲',b.name+(b.amount!=null?' · '+money(b.amount):'')+(b.assignee?' · '+(ASSIGN.find(o=>o[0]===b.assignee)||[0,''])[1]:''),`payBill('${b.id}')`,'Paid'))});
+  $('tdue').innerHTML=dl.join('')||'<p class="ph">Nothing due 🎉</p>';
+  const pl=[];
+  pit.forEach(i=>{const s=due(i.next_due,i.last_done_at,i.repeat_days,7);if(s){const p=pets.find(x=>x.id===i.pet_id);pl.push(row(s,(KIND[i.kind]||KIND.other)[0],(p?p.name+': ':'')+i.name,`givePetItem('${i.id}')`,'Given'))}});
+  $('tpet').innerHTML=pl.join('')||'<p class="ph">Nothing due 🐾</p>';
+}
+function renderNotes(){const e=$('notes');if(!e)return;e.innerHTML=cat.length?cat.map(n=>`<div class="row"><span style="cursor:pointer;flex:1;min-width:0;overflow-wrap:anywhere" onclick="editNote('${n.id}')">${esc(n.title)}</span><button onclick="delCat('${n.id}',event)">✕</button></div>`).join(''):'<div class="ph" style="color:var(--mute);font-size:13px">No notes</div>'}
+function addNote(){openForm('New note','Write a note',async t=>{await sb.from('cat_notes').insert({household_id:HID,note_date:ymd(new Date()),title:t})})}
+function editNote(id){const n=cat.find(x=>x.id===id);if(!n)return;openForm('Edit note','Write a note',async t=>{await sb.from('cat_notes').update({title:t}).eq('id',id)},{value:n.title})}
+function addCat(){openForm('Cat · add for today','e.g. Dentist, parcel pickup',async(t,time)=>{
+  await sb.from('cat_notes').insert({household_id:HID,note_date:ymd(new Date()),title:t,at_time:time||null})},{time:true})}
+async function togCat(id){const x=cat.find(y=>y.id===id);if(!x)return;x.done=!x.done;renderToday();await sb.from('cat_notes').update({done:x.done}).eq('id',id)}
+async function delCat(id,e){e.stopPropagation();await sb.from('cat_notes').delete().eq('id',id);await load()}
+function openTimer(){$('timer').style.display='flex';tickT()}
+function tickT(){
+  const now=Date.now();let ringing=false;
+  $('tchips').innerHTML=timers.map(t=>{const rem=Math.ceil((t.end-now)/1000);if(rem<=0){ringing=true;return `<span class="tchip ring" onclick="dismissT(${t.id},event)">⏰ ${esc(t.label)}</span>`}return `<span class="tchip" onclick="dismissT(${t.id},event)" title="Tap to cancel">${esc(t.label)} ${fmtT(rem)}</span>`}).join('');
+  if($('timer').style.display==='flex')$('tlist').innerHTML=timers.length?timers.map(t=>{const rem=Math.ceil((t.end-now)/1000);return `<div class="trow"><b>${esc(t.label)}</b><span>${rem>0?fmtT(rem):'⏰ Done'}</span><button onclick="dismissT(${t.id})">${rem>0?'Cancel':'Dismiss'}</button></div>`}).join(''):'<p class="ph">No timers running.</p>';
+  if(ringing&&now-lastBeep>1800){lastBeep=now;beep()}
+}
+setInterval(tickT,500);
+(function(){let x0=null,y0=0;const c=document.getElementById('calc');if(!c)return;
+c.addEventListener('touchstart',e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY},{passive:true});
+c.addEventListener('touchend',e=>{if(x0===null)return;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)mv(dx<0?1:-1)},{passive:true})})();
+function themeNow(){let m='auto';try{m=localStorage.getItem('fridge_theme')||'light'}catch(e){}const h=new Date().getHours();return m==='dark'||(m==='auto'&&(h>=18||h<6))?'dark':'light'}
+function applyTheme(){document.documentElement.setAttribute('data-theme',themeNow())}
+function setTheme(v){try{localStorage.setItem('fridge_theme',v)}catch(e){}applyTheme()}
+applyTheme();setInterval(applyTheme,60000);
+try{const ts=document.getElementById('themesel');if(ts)ts.value=localStorage.getItem('fridge_theme')||'light'}catch(e){}
+(function(){
+const busy=()=>['form','menu','setup','pan'].some(i=>{const e=document.getElementById(i);return e&&e.style.display&&e.style.display!=='none'});
+setInterval(()=>{if(!busy())location.reload()},2*3600*1000);
+let y0=null;const bar=document.createElement('div');bar.style.cssText='position:fixed;top:0;left:0;right:0;text-align:center;padding:8px;background:#3a3a4a;color:#fff;font-size:14px;z-index:99;transform:translateY(-100%);transition:transform .15s';bar.textContent='Pull down to refresh';document.body.appendChild(bar);
+document.addEventListener('touchstart',e=>{y0=e.touches[0].clientY<140?e.touches[0].clientY:null},{passive:true});
+document.addEventListener('touchmove',e=>{if(y0===null)return;const d=e.touches[0].clientY-y0;if(d>0){bar.style.transform='translateY(0)';bar.textContent=d>110?'Release to refresh':'Pull down to refresh'}},{passive:true});
+document.addEventListener('touchend',e=>{if(y0===null)return;const d=e.changedTouches[0].clientY-y0;y0=null;bar.style.transform='translateY(-100%)';if(d>110)location.reload()},{passive:true});
+})();
+function fitScreen(){const w=innerWidth,h=innerHeight,b=document.body,a=document.getElementById('app'),land=w>=h;
+  b.classList.toggle('portrait',!land);
+  const z=land?Math.max(.5,Math.min(w/1280,h/800)):Math.max(.5,Math.min(w/800,1.6));
+  b.style.zoom=z;b.style.width=(w/z)+'px';
+  if(land){b.style.height=(h/z)+'px';a.style.height=(h/z)+'px'}else{b.style.height='auto';a.style.height='auto'}}
+fitScreen();addEventListener('resize',fitScreen);addEventListener('orientationchange',()=>setTimeout(fitScreen,200));
+tick();setInterval(tick,15000);
+if(navigator.getBattery)navigator.getBattery().then(b=>{const u=()=>$('batt').textContent=(b.charging?'⚡ ':'🔋 ')+Math.round(b.level*100)+'%';u();b.onlevelchange=u;b.onchargingchange=u});
+boot();loadWx();setInterval(loadWx,1800000);
+</script>
+</body>
+</html>
