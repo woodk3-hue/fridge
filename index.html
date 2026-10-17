@@ -152,6 +152,7 @@ body.portrait .lcol>.card{flex:none;max-height:none}
 body.portrait .cal.bigcal{min-height:560px}
 body.portrait .top{order:1}body.portrait .prow{order:2}body.portrait #calc{order:3}body.portrait .lcol{order:4}
 .top>.tc{background:transparent!important;border:0!important;box-shadow:none!important}
+.modal>div{max-height:94%;overflow:auto}
 </style>
 </head>
 <body>
@@ -705,12 +706,13 @@ document.addEventListener('touchstart',e=>{y0=e.touches[0].clientY<140?e.touches
 document.addEventListener('touchmove',e=>{if(y0===null)return;const d=e.touches[0].clientY-y0;if(d>0){bar.style.transform='translateY(0)';bar.textContent=d>110?'Release to refresh':'Pull down to refresh'}},{passive:true});
 document.addEventListener('touchend',e=>{if(y0===null)return;const d=e.changedTouches[0].clientY-y0;y0=null;bar.style.transform='translateY(-100%)';if(d>110)location.reload()},{passive:true});
 })();
-function fitScreen(){const w=innerWidth,h=innerHeight,b=document.body,a=document.getElementById('app'),land=w>=h;
+function kbOpen(){const e=document.activeElement;return !!e&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName)&&e.type!=='checkbox'}
+function fitScreen(){if(kbOpen())return;const w=innerWidth,h=innerHeight,b=document.body,a=document.getElementById('app'),land=w>=h;
   b.classList.toggle('portrait',!land);
   const z=land?Math.max(.5,Math.min(w/1280,h/800)):Math.max(.5,Math.min(w/800,1.6));
   b.style.zoom=z;b.style.width=(w/z)+'px';
   if(land){b.style.height=(h/z)+'px';a.style.height=(h/z)+'px'}else{b.style.height='auto';a.style.height='auto'}}
-fitScreen();addEventListener('resize',fitScreen);addEventListener('orientationchange',()=>setTimeout(fitScreen,200));
+fitScreen();addEventListener('resize',fitScreen);addEventListener('focusout',()=>setTimeout(fitScreen,400));addEventListener('focusin',e=>{if(kbOpen())setTimeout(()=>{try{e.target.scrollIntoView({block:'center'})}catch(x){}},350)});addEventListener('orientationchange',()=>setTimeout(fitScreen,200));
 tick();setInterval(tick,15000);
 if(navigator.getBattery)navigator.getBattery().then(b=>{const u=()=>$('batt').textContent=(b.charging?'⚡ ':'🔋 ')+Math.round(b.level*100)+'%';u();b.onlevelchange=u;b.onchargingchange=u});
 boot();loadWx();setInterval(loadWx,1800000);
