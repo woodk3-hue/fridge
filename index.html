@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="light">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fridge</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#f3f3f3;--card:#fff;--ink:#2a2a2a;--mute:#8a8a8a;--acc:#d63a2f;--grn:#2f6b4f;--tile:#d6ebdf;--lav:#e3e1f5;--pill:#e6e6e6;--line:#ececec;--me:#4a4fa8;--pt:#2a9d8f;--ev:#e8923a}
+:root{color-scheme:light;--bg:#f3f3f3;--card:#fff;--ink:#2a2a2a;--mute:#8a8a8a;--acc:#d63a2f;--grn:#2f6b4f;--tile:#d6ebdf;--lav:#e3e1f5;--pill:#e6e6e6;--line:#ececec;--me:#4a4fa8;--pt:#2a9d8f;--ev:#e8923a}
 *{box-sizing:border-box;margin:0;font-family:Georgia,"Noto Serif","Iowan Old Style","Times New Roman",serif}
 body{background:var(--bg);color:var(--ink);height:100vh;overflow:hidden}
 button{border:0;border-radius:999px;padding:7px 14px;font-size:14px;background:var(--pill);color:var(--ink);cursor:pointer}
@@ -694,7 +695,7 @@ setInterval(tickT,500);
 c.addEventListener('touchstart',e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY},{passive:true});
 c.addEventListener('touchend',e=>{if(x0===null)return;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)mv(dx<0?1:-1)},{passive:true})})();
 function themeNow(){let m='auto';try{m=localStorage.getItem('fridge_theme')||'light'}catch(e){}const h=new Date().getHours();return m==='dark'||(m==='auto'&&(h>=18||h<6))?'dark':'light'}
-function applyTheme(){document.documentElement.setAttribute('data-theme',themeNow())}
+function applyTheme(){const t=themeNow();document.documentElement.setAttribute('data-theme',t);const m=document.querySelector('meta[name=color-scheme]');if(m)m.setAttribute('content',t)}
 function setTheme(v){try{localStorage.setItem('fridge_theme',v)}catch(e){}applyTheme()}
 applyTheme();setInterval(applyTheme,60000);
 try{const ts=document.getElementById('themesel');if(ts)ts.value=localStorage.getItem('fridge_theme')||'light'}catch(e){}
