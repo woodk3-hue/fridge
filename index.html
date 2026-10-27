@@ -223,11 +223,14 @@ body:not(.portrait) .top{grid-template-columns:1.1fr 1.5fr minmax(280px,320px)!i
 
 <div id="daym" class="modal" onclick="if(event.target===this)this.style.display='none'"><div style="min-width:320px;max-width:460px;width:90%;max-height:85vh;overflow:auto"><h3 id="dayt" style="margin-bottom:10px"></h3><div id="dayb"></div><div style="display:flex;gap:8px;margin-top:12px"><button class="p" id="dayadd">＋ Add event</button><button onclick="$('daym').style.display='none'">Close</button></div></div></div>
 
+<div id="whom" class="modal"><div style="text-align:center"><h3 style="margin-bottom:4px">Done by?</h3><p class="ph" id="whot" style="margin-bottom:14px"></p><div style="display:flex;gap:10px;justify-content:center"><button id="whok" style="background:#a8d0e6!important;color:#1c3d52!important;font-size:20px;padding:16px 34px!important">Kim</button><button id="whoc" style="background:#fcc8e0!important;color:#6b2142!important;font-size:20px;padding:16px 34px!important">Cat</button></div><button id="whox" style="margin-top:14px">Cancel</button></div></div>
+<div id="stats" class="modal"><div style="width:min(720px,94vw);max-height:90%;overflow:auto"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3>Chores &amp; to-do stats</h3><button onclick="$('stats').style.display='none'">Close</button></div><div id="statb"></div></div></div>
 <div id="form" class="modal"><div>
   <h3 id="ftitle" style="margin-bottom:8px"></h3>
   <input id="f1" placeholder="">
   <input id="f2" type="time" style="display:none">
   <input id="f3" type="number" min="1" placeholder="Repeat every X days (blank = once)" style="display:none">
+  <select id="f11" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"><option value="days">days</option><option value="weeks">weeks</option><option value="months">months (same date each month)</option></select>
   <input id="f4" type="time" style="display:none">
   <select id="f6" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"><option value="flea_worm">Flea &amp; worm</option><option value="flea">Flea</option><option value="worm">Worm</option><option value="med">Medication</option><option value="other">Other</option></select>
   <select id="f7" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"></select>
@@ -247,7 +250,7 @@ body:not(.portrait) .top{grid-template-columns:1.1fr 1.5fr minmax(280px,320px)!i
   <p class="ph" style="margin:14px 0 4px">Weather location (suburb or town):</p>
   <div style="display:flex;gap:6px"><input id="locin" placeholder="e.g. Brisbane"><button onclick="setLoc()">Set</button></div>
   <p class="ph" id="locmsg"></p>
-  <div style="display:flex;gap:8px;margin-top:8px"><button onclick="sb.auth.signOut().then(()=>location.reload())">Sign out</button><button onclick="$('menu').style.display='none'">Close</button></div>
+  <div style="display:flex;gap:8px;margin-top:8px"><button onclick="openStats()">Activity &amp; stats</button><button onclick="sb.auth.signOut().then(()=>location.reload())">Sign out</button><button onclick="$('menu').style.display='none'">Close</button></div>
 </div></div>
 
 <div id="app">
@@ -289,7 +292,7 @@ body:not(.portrait) .top{grid-template-columns:1.1fr 1.5fr minmax(280px,320px)!i
 const SB_URL='https://lcwmbbickoylsybrqpei.supabase.co';
 const SB_KEY='sb_publishable_C9xS5earS-LRjjtuvWWDMg_JUX-KSTf';
 const sb=supabase.createClient(SB_URL,SB_KEY);
-let HID=null,ME=null,ev=[],ch=[],td=[],sh=[],ml=[],pets=[],pit=[],bills=[],shop=[],stock=[],cat=[],ptb='shop',view=new Date();view.setDate(1);
+let HID=null,ME=null,ev=[],ch=[],td=[],sh=[],ml=[],pets=[],pit=[],bills=[],shop=[],stock=[],cat=[],act=[],ptb='shop',view=new Date();view.setDate(1);
 const $=id=>document.getElementById(id);
 const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
@@ -323,7 +326,7 @@ async function boot(){
 }
 
 async function load(){
-  const[e,c,t,s,m,pp,pi,bb,si,pa,cn]=await Promise.all([
+  const[e,c,t,s,m,pp,pi,bb,si,pa,cn,al]=await Promise.all([
     sb.from('events').select('*').order('starts_at'),
     sb.from('chores').select('*').order('next_due',{nullsFirst:false}),
     sb.from('todos').select('*').order('created_at'),
@@ -334,8 +337,9 @@ async function load(){
     sb.from('bills').select('*').order('due_date'),
     sb.from('shopping_items').select('*').order('created_at'),
     sb.from('pantry_items').select('*').order('use_by',{nullsFirst:false}),
-    sb.from('cat_notes').select('*').order('created_at')]);
-  ev=e.data||[];ch=c.data||[];td=t.data||[];sh=s.data||[];ml=m.data||[];pets=pp.data||[];pit=pi.data||[];bills=bb.data||[];shop=si.data||[];stock=pa.data||[];cat=cn.data||[];render();if($('pan').style.display==='flex')renderPan();
+    sb.from('cat_notes').select('*').order('created_at'),
+    sb.from('activity_log').select('*').order('done_at',{ascending:false}).limit(2000)]);
+  ev=e.data||[];ch=c.data||[];td=t.data||[];sh=s.data||[];ml=m.data||[];pets=pp.data||[];pit=pi.data||[];bills=bb.data||[];shop=si.data||[];stock=pa.data||[];cat=cn.data||[];act=al.data||[];render();if($('pan').style.display==='flex')renderPan();
 }
 function render(){renderPills();renderToday();renderBills();renderPets();renderRoster();renderChores();renderTodos();renderNotes();renderCal();renderMeals()}
 
@@ -477,7 +481,7 @@ function openDay(ts){const d=new Date(ts),k=ymd(d);$('dayt').textContent=d.toLoc
     rows.push(`<div class="row" style="cursor:pointer" onclick="$('daym').style.display='none';editEvent('${e.id}')"><span style="display:flex;gap:10px;align-items:center;min-width:0"><i style="width:10px;height:10px;border-radius:50%;background:${o[1]};flex:none"></i><span><b>${esc(e.title)}</b>${sub?`<br><small style="color:var(--mute)">${esc(sub)}</small>`:''}</span></span><small style="color:var(--mute)">${e.owner==='birthday'?'Birthday / Anniversary':t}</small></div>`)});
   bills.filter(b=>b.due_date===k).forEach(b=>rows.push(`<div class="row" style="cursor:pointer" onclick="$('daym').style.display='none';editBill('${b.id}')"><b>${esc(b.name)}</b><small>${b.amount!=null?money(b.amount):''}</small></div>`));
   ch.filter(c=>c.next_due===k).forEach(c=>rows.push(`<div class="row"><b>${esc(c.name)}</b><small style="color:var(--mute)">Chore${c.assignee?' · '+(ASSIGN.find(o=>o[0]===c.assignee)||['',''])[1]:''}</small></div>`));
-  pit.filter(i=>i.next_due===k).forEach(i=>{const p=pets.find(x=>x.id===i.pet_id);rows.push(`<div class="row"><b>${esc((p?p.name+': ':'')+i.name)}</b><small style="color:var(--mute)">Pet due</small></div>`)});
+  pit.filter(i=>petOcc(i,k)).forEach(i=>{const p=pets.find(x=>x.id===i.pet_id);rows.push(`<div class="row"><b>${esc((p?p.name+': ':'')+i.name)}</b><small style="color:var(--mute)">Pet due</small></div>`)});
   $('dayb').innerHTML=rows.length?rows.join(''):'<p class="ph">Nothing on this day.</p>';
   $('dayadd').onclick=()=>{$('daym').style.display='none';addEvent(d)};$('daym').style.display='flex'}
 function renderCal(){
@@ -494,6 +498,7 @@ function renderCal(){
     if(PH[k])blk.push(`<span class="eb" style="background:${OWN.holiday[1]};color:#fff">${esc(PH[k])}</span>`);
     es.forEach(e=>{const o=OWN[own(e)]||OWN.kim;const trip=e.owner==='holiday';const t=trip?'✈ ':e.all_day?'':'<i>'+new Date(e.starts_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).replace(/\s?(am|pm)/i,'')+'</i>';
       blk.push(`<span class="eb" style="background:${o[1]};color:${o[2]}" onclick="event.stopPropagation();editEvent('${e.id}')">${t}${esc(e.title)}</span>`)});
+    pit.filter(i=>petOcc(i,k)).forEach(i=>{const p=pets.find(x=>x.id===i.pet_id);blk.push(`<span class="eb" style="background:#2a9d8f;color:#fff">${esc((p?p.name+' · ':'')+i.name)}</span>`)});
     bills.filter(b=>b.due_date===k).forEach(b=>blk.push(`<span class="eb bill st-${billState(b)}" onclick="event.stopPropagation();editBill('${b.id}')">💲 ${esc(b.name)}${b.amount!=null?' '+money(b.amount):''}</span>`));
     const shown=blk.slice(0,maxB).join('')+(blk.length>maxB?`<span class="more">+${blk.length-maxB} more</span>`:'');
     h+=`<div class="cd ${m>=0&&d.getMonth()!==m?'o':''} ${k===today?'t':''} ${cellCls(sf[0])}" onclick="openDay(${d.getTime()})"><div class="dn"><span class="dd"><b>${d.getDate()}</b><small>${d.toLocaleDateString([],{weekday:'short'})}</small></span><span style="display:flex;gap:4px">${sf.map(chip).join('')}</span></div>${shown}</div>`;
@@ -508,12 +513,13 @@ function openForm(title,ph,okFn,opts={}){
   $('f3').style.display=(opts.repeat||opts.num)?'block':'none';$('f3').value='';
   $('f4').style.display=opts.end?'block':'none';$('f4').value='';
   $('f2').title='Start time';$('f4').title='End time';
+  $('f11').style.display=opts.unit?'block':'none';$('f11').value=opts.unitValue||'days';
   $('f5').style.display=opts.date?'block':'none';$('f5').value=opts.dateValue||'';
   $('f6').style.display=opts.kind?'block':'none';$('f6').innerHTML=(opts.kindOpts||[['flea_worm','Flea & worm'],['flea','Flea'],['worm','Worm'],['med','Medication'],['other','Other']]).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');$('f6').value=opts.kindValue||$('f6').options[0].value;
   $('f7').style.display=opts.assign?'block':'none';$('f7').innerHTML=ASSIGN.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');$('f7').value=opts.assignValue||'';
   ['f8','f9','f10','l5','l8'].forEach(i=>$(i).style.display=opts.trip?'block':'none');if(opts.trip){$('f8').value=opts.endValue||'';$('f9').value=opts.where||'';$('f10').value=opts.notes||''}
   $('fclear').style.display=opts.clear?'inline-block':'none';$('fclear').textContent='Delete';let armed=0;$('fclear').onclick=async()=>{if(!armed){armed=1;$('fclear').textContent='Tap again to delete';setTimeout(()=>{armed=0;$('fclear').textContent='Delete'},3000);return}await opts.clear();closeForm();load()};
-  $('fok').onclick=async()=>{if(!$('f1').value.trim())return;if(opts.needDate&&!$('f5').value){$('f5').focus();return}await okFn($('f1').value.trim(),$('f2').value,$('f3').value,{date:$('f5').value,kind:$('f6').value,assign:$('f7').value||null,end:$('f8').value,where:$('f9').value.trim(),notes:$('f10').value.trim()});closeForm();load()};
+  $('fok').onclick=async()=>{if(!$('f1').value.trim())return;if(opts.needDate&&!$('f5').value){$('f5').focus();return}await okFn($('f1').value.trim(),$('f2').value,$('f3').value,{date:$('f5').value,kind:$('f6').value,unit:$('f11').value,assign:$('f7').value||null,end:$('f8').value,where:$('f9').value.trim(),notes:$('f10').value.trim()});closeForm();load()};
   $('form').style.display='flex';$('f1').focus();
 }
 function closeForm(){$('form').style.display='none'}
@@ -572,18 +578,27 @@ function addPet(){openForm('New pet','Pet name',async n=>{await sb.from('pets').
 function editPet(id){const p=pets.find(x=>x.id===id);openForm('Edit pet','Pet name',async n=>{await sb.from('pets').update({name:n}).eq('id',id)},{value:p.name,clear:async()=>{if(true)await sb.from('pets').delete().eq('id',id)}})}
 function addPetItem(pid){const p=pets.find(x=>x.id===pid);
   openForm('New treatment · '+p.name,'Name (e.g. NexGard, Heartworm)',async(n,_,r,x)=>{
-    const rep=r?+r:null;await sb.from('pet_items').insert({household_id:HID,pet_id:pid,kind:x.kind,name:n,repeat_days:rep,next_due:x.date||ymd(new Date())})},
-    {repeat:true,kind:true,date:true,dateValue:ymd(new Date())});
-  $('f3').placeholder='Repeat every X days (monthly = 30, blank = once)';
+    await sb.from('pet_items').insert({household_id:HID,pet_id:pid,kind:x.kind,name:n,...petRep(r,x.unit),next_due:x.date||ymd(new Date())})},
+    {repeat:true,unit:true,kind:true,date:true,dateValue:ymd(new Date())});
+  $('f3').placeholder='Repeat every… (blank = once)';
 }
 function editPetItem(id){const i=pit.find(x=>x.id===id);
-  openForm('Edit treatment','Name',async(n,_,r,x)=>{await sb.from('pet_items').update({name:n,kind:x.kind,repeat_days:r?+r:null,next_due:x.date||null}).eq('id',id)},
-    {value:i.name,repeat:true,kind:true,date:true,dateValue:i.next_due||'',clear:async()=>{await sb.from('pet_items').delete().eq('id',id)}});
-  $('f3').value=i.repeat_days||'';$('f6').value=i.kind||'med';$('f3').placeholder='Repeat every X days (monthly = 30, blank = once)';
+  openForm('Edit treatment','Name',async(n,_,r,x)=>{await sb.from('pet_items').update({name:n,kind:x.kind,...petRep(r,x.unit),next_due:x.date||null}).eq('id',id)},
+    {value:i.name,repeat:true,unit:true,unitValue:i.repeat_unit==='months'?'months':(i.repeat_days&&i.repeat_days%7===0?'weeks':'days'),kind:true,date:true,dateValue:i.next_due||'',clear:async()=>{await sb.from('pet_items').delete().eq('id',id)}});
+  $('f3').value=i.repeat_unit!=='months'&&i.repeat_days&&i.repeat_days%7===0?i.repeat_days/7:(i.repeat_days||'');$('f6').value=i.kind||'med';$('f3').placeholder='Repeat every… (blank = once)';
 }
+function petRep(r,u){const n=r?+r:null;if(!n)return{repeat_days:null,repeat_unit:'days'};return u==='weeks'?{repeat_days:n*7,repeat_unit:'days'}:u==='months'?{repeat_days:n,repeat_unit:'months'}:{repeat_days:n,repeat_unit:'days'}}
+const addMonths=(d,n,dom)=>{const x=new Date(d.getFullYear(),d.getMonth()+n,1);x.setDate(Math.min(dom||d.getDate(),new Date(x.getFullYear(),x.getMonth()+1,0).getDate()));return x};
+function petNext(i){const t=new Date();t.setHours(0,0,0,0);
+  if(i.repeat_unit==='months'&&i.repeat_days){const b=new Date((i.next_due||ymd(t))+'T00:00'),dom=b.getDate();let x=b,n=0;while(x<=t&&n<600){n+=i.repeat_days;x=addMonths(b,n,dom)}return ymd(x)}
+  return ymd(addDays(new Date(),i.repeat_days))}
+function petOcc(i,k){if(!i.next_due||k<i.next_due)return false;if(!i.repeat_days)return k===i.next_due;
+  const a=new Date(i.next_due+'T00:00'),d=new Date(k+'T00:00');
+  if(i.repeat_unit==='months'){const m=(d.getFullYear()-a.getFullYear())*12+d.getMonth()-a.getMonth();return m>=0&&m%i.repeat_days===0&&d.getDate()===Math.min(a.getDate(),new Date(d.getFullYear(),d.getMonth()+1,0).getDate())}
+  return Math.round((d-a)/864e5)%i.repeat_days===0}
 async function givePetItem(id){const i=pit.find(x=>x.id===id);
   const upd={last_done_at:new Date().toISOString(),last_done_by:ME};
-  if(i.repeat_days)upd.next_due=ymd(addDays(new Date(),i.repeat_days));
+  if(i.repeat_days)upd.next_due=petNext(i);
   await sb.from('pet_items').update(upd).eq('id',id);load()}
 async function undoPetItem(id){const i=pit.find(x=>x.id===id);
   await sb.from('pet_items').update({last_done_at:null,last_done_by:null,next_due:i.repeat_days?ymd(new Date()):i.next_due}).eq('id',id);load()}
@@ -626,13 +641,38 @@ async function payBill(id){const b=bills.find(x=>x.id===id);
 async function undoBill(id){const b=bills.find(x=>x.id===id);
   await sb.from('bills').update({last_paid_at:null,last_paid_by:null,due_date:b.prev_due||b.due_date}).eq('id',id);load()}
 async function doneChore(id){
-  const c=ch.find(x=>x.id===id);
+  const c=ch.find(x=>x.id===id);if(!c)return;
+  askWho(c.name,async who=>{
   const upd={last_done_at:new Date().toISOString(),last_done_by:ME};
   if(c.repeat_days)upd.next_due=ymd(addDays(new Date(),c.repeat_days));
-  await sb.from('chores').update(upd).eq('id',id);load();
+  await sb.from('chores').update(upd).eq('id',id);
+  await sb.from('activity_log').insert({household_id:HID,kind:'chore',item_id:id,title:c.name,done_by:who});load()})
 }
-async function undoChore(id){const c=ch.find(x=>x.id===id);await sb.from('chores').update({last_done_at:null,last_done_by:null,next_due:c.repeat_days?ymd(new Date()):null}).eq('id',id);load()}
-async function toggleTodo(id,v){await sb.from('todos').update({done:v,done_at:v?new Date().toISOString():null}).eq('id',id);load()}
+async function undoLog(id){const l=act.find(x=>x.item_id===id);if(l)await sb.from('activity_log').delete().eq('id',l.id)}
+async function undoChore(id){const c=ch.find(x=>x.id===id);await undoLog(id);await sb.from('chores').update({last_done_at:null,last_done_by:null,next_due:c.repeat_days?ymd(new Date()):null}).eq('id',id);load()}
+async function toggleTodo(id,v){const t=td.find(x=>x.id===id);if(!t)return;
+  if(v){askWho(t.title,async who=>{await sb.from('todos').update({done:true,done_at:new Date().toISOString()}).eq('id',id);await sb.from('activity_log').insert({household_id:HID,kind:'todo',item_id:id,title:t.title,done_by:who});load()})}
+  else{await undoLog(id);await sb.from('todos').update({done:false,done_at:null}).eq('id',id);load()}}
+function askWho(title,cb){$('whot').textContent=title;$('whom').style.display='flex';
+  const go=w=>{$('whom').style.display='none';cb(w)};
+  $('whok').onclick=()=>go('kim');$('whoc').onclick=()=>go('cat');$('whox').onclick=()=>{$('whom').style.display='none'}}
+let spd='week';
+function openStats(){$('menu').style.display='none';$('stats').style.display='flex';renderStats()}
+function setSp(p){spd=p;renderStats()}
+function renderStats(){
+  const now=new Date(),mon=new Date(now);mon.setHours(0,0,0,0);mon.setDate(mon.getDate()-((mon.getDay()+6)%7));const m1=new Date(now.getFullYear(),now.getMonth(),1);
+  const from=spd==='week'?mon:spd==='month'?m1:new Date(0);
+  const L=act.filter(x=>new Date(x.done_at)>=from);
+  const cnt=w=>L.filter(x=>x.done_by===w).length,k=cnt('kim'),c=cnt('cat'),tot=k+c||1;
+  const by={};L.forEach(x=>{const o=by[x.title]||(by[x.title]={kim:0,cat:0,kind:x.kind});o[x.done_by]=(o[x.done_by]||0)+1});
+  const rows=Object.keys(by).sort((a,b)=>(by[b].kim+by[b].cat)-(by[a].kim+by[a].cat)).slice(0,12).map(t=>`<div class="row"><span>${esc(t)} <small style="color:var(--mute)">${by[t].kind==='todo'?'To do':'Chore'}</small></span><span><span class="as as-kim">Kim ${by[t].kim}</span> <span class="as as-cat">Cat ${by[t].cat}</span></span></div>`).join('');
+  const rec=L.slice(0,15).map(x=>{const d=new Date(x.done_at);return `<div class="row"><span><b>${x.done_by==='kim'?'Kim':'Cat'}</b> · ${esc(x.title)}</span><small style="color:var(--mute)">${d.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})} ${d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</small></div>`}).join('');
+  $('statb').innerHTML=`<div style="display:flex;gap:6px;margin-bottom:12px">${[['week','This week'],['month','This month'],['all','All time']].map(p=>`<button onclick="setSp('${p[0]}')" style="${spd===p[0]?'background:var(--acc)!important;color:#fff!important':''}">${p[1]}</button>`).join('')}</div>
+  <div style="display:flex;gap:10px;margin-bottom:12px"><div class="card" style="flex:1;text-align:center"><div class="lbl" style="justify-content:center">Kim</div><b style="font-size:34px">${k}</b></div><div class="card" style="flex:1;text-align:center"><div class="lbl" style="justify-content:center">Cat</div><b style="font-size:34px">${c}</b></div><div class="card" style="flex:1;text-align:center"><div class="lbl" style="justify-content:center">Total</div><b style="font-size:34px">${k+c}</b></div></div>
+  <div style="height:12px;border-radius:99px;overflow:hidden;display:flex;margin-bottom:16px;background:var(--line)"><i style="width:${k/tot*100}%;background:#a8d0e6"></i><i style="width:${c/tot*100}%;background:#fcc8e0"></i></div>
+  <div class="lbl">By task</div>${rows||'<p class="ph">Nothing yet.</p>'}
+  <div class="lbl" style="margin-top:14px">Recent</div>${rec||'<p class="ph">Nothing yet.</p>'}`}
+
 async function delTodo(id){await sb.from('todos').delete().eq('id',id);load()}
 
 const MSGS=["Start the day with generosity.", "Be kind to yourself today.", "Dream big, start small.", "Today, choose warmth.", "Your best is enough.", "A little calm goes a long way.", "Make room for curiosity today.", "Share some fresh air today.", "Today, choose laughter.", "Everything will work out.", "Today is made better by joy.", "Share some gratitude today.", "Find courage in the little things.", "Good vibes only.", "Smile, it's contagious.", "Start the day with love.", "Make room for laughter today.", "Let warmth lead the way today.", "Create a day you'll love.", "Make room for honesty today.", "Love makes the ordinary special.", "Find focus in the little things.", "Today, choose energy.", "Carry honesty with you today.", "Bring some kind words into someone's day.", "A little fresh air goes a long way.", "Today is a fresh start.", "Start the day with curiosity.", "Bring some humility into someone's day.", "End the day with kindness.", "Bring some small wins into someone's day.", "Carry quiet moments with you today.", "Celebrate how far you've come.", "A little honesty goes a long way.", "End the day with a big smile.", "Cherish the everyday.", "Find energy in the little things.", "Happiness is homemade.", "Make room for patience today.", "Start the day with a big smile.", "Let joy lead the way today.", "Share some slow mornings today.", "A little confidence goes a long way.", "Take pride in the small wins.", "Start where you are.", "Every moment is a fresh beginning.", "Trust the process.", "Love is the answer.", "Gratitude turns enough into plenty.", "Today's a great day to start something.", "Find patience in the little things.", "Let energy lead the way today.", "End the day with honesty.", "End the day with courage.", "A little laughter goes a long way.", "Bring some curiosity into someone's day.", "A little a big smile goes a long way.", "Spread a little happiness.", "Share some love today.", "Progress, not perfection.", "Hope is a good breakfast.", "Share some a big smile today.", "Home is where we're together.", "End the day with laughter.", "Let humility lead the way today.", "Find joy in the little things.", "Wherever you go, bring the sunshine.", "Today is made better by slow mornings.", "Start the day with patience.", "Do something that makes you happy.", "Share some laughter today.", "Today, choose honesty.", "Gratitude makes everything better.", "Let gratitude lead the way today.", "Make room for good company today.", "Today is a gift.", "Start the day with kind words.", "Carry gratitude with you today.", "Be a little kinder than necessary.", "Be the reason someone smiles today.", "Make today ordinary and wonderful.", "A little curiosity goes a long way.", "Carry joy with you today.", "A little generosity goes a long way.", "End the day with gratitude.", "Today is made better by honesty.", "The little things are the big things.", "Find good company in the little things.", "Nothing is impossible with a plan.", "Bring some patience into someone's day.", "Today, choose humility.", "Make it count.", "Carry good company with you today.", "Today is made better by kind words.", "End the day with hope.", "Say yes to something good today.", "Find calm in the little things.", "Carry hope with you today.", "Start the day with confidence.", "Make room for hope today.", "Today is made better by hope.", "Every day is a chance to grow.", "Let confidence lead the way today.", "Bring some good company into someone's day.", "Make room for peace today.", "Let kindness lead the way today.", "Make room for gratitude today.", "Find slow mornings in the little things.", "Start the day with peace.", "Carry calm with you today.", "End the day with quiet moments.", "Share some humility today.", "Start the day with small wins.", "A little warmth goes a long way.", "Start the day with honesty.", "Bring some joy into someone's day.", "Make room for confidence today.", "Carry focus with you today.", "Today, choose good company.", "Today is made better by small wins.", "Today, choose hope.", "A little humility goes a long way.", "Make room for calm today.", "Bring some generosity into someone's day.", "Make room for love today.", "Share a laugh with someone you love.", "Start the day with kindness.", "Do what you can, with what you have.", "Start the day with fresh air.", "Today, choose slow mornings.", "Make room for fresh air today.", "Bring some gratitude into someone's day.", "Peace begins with a smile.", "End the day with focus.", "Let kind words lead the way today.", "Today is made better by calm.", "Make room for a big smile today.", "Carry slow mornings with you today.", "Today is made better by a big smile.", "You are exactly where you need to be.", "Today is made better by focus.", "Today is made better by quiet moments.", "Bring some courage into someone's day.", "Today is made better by love.", "Find kind words in the little things.", "Today, choose courage.", "Find fresh air in the little things.", "You're doing better than you think.", "Today is made better by gratitude.", "Start the day with quiet moments.", "Start the day with warmth.", "End the day with slow mornings.", "Carry kind words with you today.", "Bring some hope into someone's day.", "Enjoy the little moments.", "End the day with small wins.", "Be the energy you want to attract.", "End the day with generosity.", "Share some patience today.", "End the day with patience.", "Bring some focus into someone's day.", "Today, choose quiet moments.", "Bring some quiet moments into someone's day.", "Today is made better by patience.", "Today, choose love.", "Today is made better by laughter.", "One day at a time.", "The best is yet to come.", "Make room for generosity today.", "Let slow mornings lead the way today.", "Bring some fresh air into someone's day.", "A little peace goes a long way.", "End the day with joy.", "Choose joy, even in small things.", "Make today a good one.", "Carry fresh air with you today.", "Do one thing today your future self will thank you for.", "Carry a big smile with you today.", "Start the day with courage.", "Share some confidence today.", "Make room for humility today.", "You've got this today.", "Find generosity in the little things.", "Make room for joy today.", "A little kind words goes a long way.", "Keep smiling, it suits you.", "Laugh a little, worry a little less.", "Make room for kind words today.", "Carry kindness with you today.", "Let it go and move forward.", "You are stronger than you know.", "A little quiet moments goes a long way.", "Today is full of possibility.", "Share some generosity today.", "End the day with calm.", "A little slow mornings goes a long way.", "Your effort matters.", "Let honesty lead the way today.", "Find warmth in the little things.", "Today is yours.", "Happy hearts make happy homes.", "Today is made better by courage.", "Start the day with good company.", "Carry generosity with you today.", "A little patience goes a long way.", "Breathe. One thing at a time.", "Today, choose generosity.", "End the day with curiosity.", "Today, choose curiosity.", "Find humility in the little things.", "Find gratitude in the little things.", "Share some curiosity today.", "Make room for small wins today.", "Be bold, be brave, be you.", "Share some courage today.", "Carry laughter with you today.", "Hug someone you love today.", "Let courage lead the way today.", "Make room for kindness today.", "Today is made better by peace.", "Small steps still move you forward.", "Today I choose happiness.", "Keep your face to the sunshine.", "Start the day with slow mornings.", "Bring some laughter into someone's day.", "Let love lead the way today.", "End the day with kind words.", "Good things take time.", "Today is made better by confidence.", "Let curiosity lead the way today.", "Start the day with focus.", "Let focus lead the way today.", "Great things never come from comfort zones.", "Take it one step at a time.", "Hard work always pays off.", "Share some honesty today.", "You're a work in progress, and that's okay.", "Bring some warmth into someone's day.", "End the day with energy.", "Take a deep breath, you've got this.", "Bring some kindness into someone's day.", "Start the day with hope.", "Make room for warmth today.", "Share some small wins today.", "Carry love with you today.", "Today is made better by kindness.", "Share some joy today.", "Start the day with energy.", "Bring some confidence into someone's day.", "Surround yourself with good people.", "Make room for courage today.", "Today, choose kindness.", "Find small wins in the little things.", "Finish the day proud.", "Carry energy with you today.", "Bring some energy into someone's day.", "Today, choose joy.", "Today, choose small wins.", "Start the day with gratitude.", "Be present, be thankful.", "End the day with fresh air.", "Share some kindness today.", "Share some good company today.", "Today is made better by warmth.", "Love what you do today.", "You deserve good things.", "A little hope goes a long way.", "A little focus goes a long way.", "Be proud of how far you've come.", "Carry curiosity with you today.", "Today is made better by generosity.", "Carry courage with you today.", "End the day with confidence.", "Start the day with calm.", "A little small wins goes a long way.", "Keep going, you're doing great.", "Share some focus today.", "A little courage goes a long way.", "Stay curious, stay kind.", "Bring some slow mornings into someone's day.", "Today, choose focus.", "Today is made better by good company.", "Let hope lead the way today.", "Find curiosity in the little things.", "A little good company goes a long way.", "Find a big smile in the little things.", "Be grateful for what you have.", "Better days are coming.", "Bring some love into someone's day.", "End the day with warmth.", "Share some quiet moments today.", "Let good company lead the way today.", "Let today be easy.", "Bring some a big smile into someone's day.", "Find honesty in the little things.", "Find quiet moments in the little things.", "Make room for quiet moments today.", "Let laughter lead the way today.", "Find confidence in the little things.", "Today is made better by curiosity.", "Share some warmth today.", "Start the day with humility.", "Share some kind words today.", "End the day with peace.", "You're loved more than you know.", "Today, choose gratitude.", "Today is made better by fresh air.", "A little gratitude goes a long way.", "Find laughter in the little things.", "Find hope in the little things.", "Carry confidence with you today.", "Let small wins lead the way today.", "Make room for focus today.", "Bring some calm into someone's day.", "Find love in the little things.", "End the day with humility.", "Carry warmth with you today.", "A little kindness goes a long way.", "End the day with good company.", "Carry small wins with you today.", "Today, choose peace.", "Every sunrise is a new beginning.", "A little energy goes a long way.", "Home is the best place to be.", "Let generosity lead the way today.", "Be gentle, the world is heavy enough.", "Today, choose a big smile.", "Share some peace today.", "You've survived every hard day so far.", "Sunny days are on the way.", "Share some energy today.", "Let calm lead the way today.", "Bring some peace into someone's day.", "Another day, another chance.", "Carry humility with you today.", "Courage is one step more.", "Make room for slow mornings today.", "Start the day with laughter.", "A positive mind finds a way.", "Today is made better by energy.", "You make a difference.", "Today, choose patience.", "Focus on what you can control.", "A little joy goes a long way.", "Today, choose kind words.", "Find peace in the little things.", "Look for the good in today.", "Let quiet moments lead the way today.", "Today, choose fresh air.", "Let fresh air lead the way today.", "Let patience lead the way today.", "Make memories, not excuses.", "Let peace lead the way today.", "Together we can do anything.", "End the day with love.", "Make room for energy today.", "Little by little, a little becomes a lot.", "Carry patience with you today.", "Believe in yourself.", "A little love goes a long way.", "Today, choose confidence.", "Slow down and enjoy the ride.", "Kindness costs nothing and means everything.", "Find kindness in the little things.", "Bring some honesty into someone's day.", "Be patient with yourself."];
