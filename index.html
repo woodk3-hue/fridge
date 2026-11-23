@@ -354,11 +354,12 @@ function badgeCls(c){c=String(c||'').toUpperCase();
   if(c==='AL')return'b-al';if(c==='LSL')return'b-lsl';if(['SL','FL','REPO','REPO LEAVE'].includes(c))return'b-sl';
   if(['BLP','SLP','RDO'].includes(c)||c.startsWith('BLP')||c.startsWith('SLP'))return'b-blp';if(c.startsWith('PH'))return'b-ph';
   if(c==='AFA'||/^AM[123]?$/.test(c))return'b-afa';if(/^PM[123]?$/.test(c))return'b-afp';if(c==='AFP')return'b-afp';if(c==='CBO')return'b-cbo';return'b-mbo'}
-function cellCls(x){if(!x||x.kind==='shift')return'';const c=String(x.label||'').toUpperCase();return c==='AL'?'c-al':c==='LSL'?'c-lsl':['SL','FL','REPO'].includes(c)?'c-sl':['BLP','SLP','RDO'].includes(c)?'c-off':''}
+const isBlpWork=x=>x&&x.kind==='shift'&&/\b(BLP|SLP)\b/i.test(x.label||'');
+function cellCls(x){if(isBlpWork(x))return'c-off';if(!x||x.kind==='shift')return'';const c=String(x.label||'').toUpperCase();return c==='AL'?'c-al':c==='LSL'?'c-lsl':['SL','FL','REPO'].includes(c)?'c-sl':['BLP','SLP','RDO'].includes(c)?'c-off':''}
 function chip(x){
   if(x.kind==='leave'||x.kind==='off')return `<span class="bd ${badgeCls(x.label)}">${esc(x.label||'Off')}</span>`;
   const t=x.start_time?st(x.start_time):'';
-  return t?`<span class="bd" style="background:${pillCol(x.start_time)};color:#fff">${t}</span>`:`<span class="bd b-mbo">${esc(x.label||'Shift')}</span>`;
+  return t?`<span class="bd" style="background:${pillCol(x.start_time)};color:#fff">${t}</span>${isBlpWork(x)?'<span class="bd b-blp">BLP</span>':''}`:`<span class="bd b-mbo">${esc(x.label||'Shift')}</span>`;
 }
 function getRName(){try{return localStorage.getItem('fridge_rname')||"Kim's roster"}catch(e){return "Kim's roster"}}
 function renameRoster(){const n=prompt('Name for this roster',getRName());if(n&&n.trim()){try{localStorage.setItem('fridge_rname',n.trim())}catch(e){}renderRoster()}}
