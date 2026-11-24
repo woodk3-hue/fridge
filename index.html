@@ -230,7 +230,7 @@ body:not(.portrait) .top{grid-template-columns:1.1fr 1.5fr minmax(280px,320px)!i
   <input id="f1" placeholder="">
   <input id="f2" type="time" style="display:none">
   <input id="f3" type="number" min="1" placeholder="Repeat every X days (blank = once)" style="display:none">
-  <select id="f11" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"><option value="days">days</option><option value="weeks">weeks</option><option value="months">months (same date each month)</option></select>
+  <select id="f11" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"><option value="days">days</option><option value="weeks">weeks</option><option value="months">months (same date each month)</option><option value="years">years</option></select>
   <input id="f4" type="time" style="display:none">
   <select id="f6" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"><option value="flea_worm">Flea &amp; worm</option><option value="flea">Flea</option><option value="worm">Worm</option><option value="med">Medication</option><option value="other">Other</option></select>
   <select id="f7" style="display:none;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;font-size:16px;margin:6px 0;background:#fff"></select>
@@ -440,7 +440,7 @@ function dueText(due,st,lastDone,doneWord){
 }
 function renderChores(){
   $('chores').innerHTML=ch.length?grouped('chores',ch.map(c=>{
-    const st=dueState(c.next_due,c.last_done_at,c.repeat_days,2);
+    const st=dueState(c.next_due,c.last_done_at,chDays(c),2);
     return {st,html:`<div class="row sx st-${st}"><div style="display:flex;align-items:center;cursor:pointer;flex:1;min-width:0" onclick="editChore('${c.id}')"><span class="ico">${st==='ok'?'✅':st==='over'?'🚨':icon(c.name)}</span><div><span class="n">${esc(c.name)} <small>✎</small></span><small>${asTag(c.assignee)} ${chipTxt(c.next_due,st,c.last_done_at,'Done')}</small></div></div>${st==='ok'?`<button class="okb" onclick="undoChore('${c.id}')">✓</button>`:`<button onclick="doneChore('${c.id}')">Done</button>`}</div>`}
   })):'<p class="ph">No chores yet. Tap +.</p>';
 }
@@ -536,13 +536,14 @@ function editTrip(e){openForm('Edit holiday','Holiday name',async(t,_,__,x)=>{
   await sb.from('events').update({title:t,starts_at:new Date(x.date+'T00:00').toISOString(),end_date:en,location:x.where||null,details:x.notes||null}).eq('id',e.id)},{trip:true,date:true,needDate:true,dateValue:ymd(new Date(e.starts_at)),endValue:e.end_date||'',where:e.location||'',notes:e.details||'',value:e.title,clear:async()=>{await sb.from('events').delete().eq('id',e.id)}})}
 const ASSIGN=[['','Anyone'],['kim','Kim'],['cat','Cat'],['both','Both']];
 const asTag=a=>a?`<span class="as as-${a}">${(ASSIGN.find(o=>o[0]===a)||['',a])[1]}</span>`:'';
+const chDays=c=>c.repeat_days?(c.repeat_unit==='months'?c.repeat_days*30:c.repeat_days):null;
 function addChore(){openForm('New chore','e.g. Kitchen bin',async(n,_,r,x)=>{
   const rep=r?+r:null;
-  await sb.from('chores').insert({household_id:HID,name:n,repeat_days:rep,next_due:x.date||(rep?ymd(new Date()):null),assignee:x.assign})},{repeat:true,date:true,assign:true,dateValue:ymd(new Date())})}
+  await sb.from('chores').insert({household_id:HID,name:n,...petRep(r,x.unit),next_due:x.date||(rep?ymd(new Date()):null),assignee:x.assign})},{repeat:true,unit:true,date:true,assign:true,dateValue:ymd(new Date())});$('f3').placeholder='Repeat every… (blank = once)'}
 function editChore(id){const c=ch.find(x=>x.id===id);
-  openForm('Edit chore','Name',async(n,_,r,x)=>{await sb.from('chores').update({name:n,repeat_days:r?+r:null,next_due:x.date||null,assignee:x.assign}).eq('id',id)},
-    {value:c.name,repeat:true,date:true,assign:true,assignValue:c.assignee||'',dateValue:c.next_due||'',clear:async()=>{if(true)await sb.from('chores').delete().eq('id',id)}});
-  $('f3').value=c.repeat_days||'';}
+  openForm('Edit chore','Name',async(n,_,r,x)=>{await sb.from('chores').update({name:n,...petRep(r,x.unit),next_due:x.date||null,assignee:x.assign}).eq('id',id)},
+    {value:c.name,repeat:true,unit:true,unitValue:c.repeat_unit==='months'?(c.repeat_days%12===0?'years':'months'):(c.repeat_days&&c.repeat_days%7===0?'weeks':'days'),date:true,assign:true,assignValue:c.assignee||'',dateValue:c.next_due||'',clear:async()=>{if(true)await sb.from('chores').delete().eq('id',id)}});
+  $('f3').value=c.repeat_unit==='months'?(c.repeat_days%12===0?c.repeat_days/12:c.repeat_days):(c.repeat_days&&c.repeat_days%7===0?c.repeat_days/7:(c.repeat_days||''));$('f3').placeholder='Repeat every… (blank = once)';}
 function addTodo(){openForm('New to-do','What needs doing?',async(t,_,__,x)=>{await sb.from('todos').insert({household_id:HID,title:t,assignee:x.assign})},{assign:true})}
 function editTodo(id){const t=td.find(x=>x.id===id);openForm('Edit to-do','What needs doing?',async(n,_,__,x)=>{await sb.from('todos').update({title:n,assignee:x.assign}).eq('id',id)},{value:t.title,assign:true,assignValue:t.assignee||'',clear:async()=>{await sb.from('todos').delete().eq('id',id)}})}
 function planMeal(i){
@@ -588,7 +589,7 @@ function editPetItem(id){const i=pit.find(x=>x.id===id);
     {value:i.name,repeat:true,unit:true,unitValue:i.repeat_unit==='months'?'months':(i.repeat_days&&i.repeat_days%7===0?'weeks':'days'),kind:true,date:true,dateValue:i.next_due||'',clear:async()=>{await sb.from('pet_items').delete().eq('id',id)}});
   $('f3').value=i.repeat_unit!=='months'&&i.repeat_days&&i.repeat_days%7===0?i.repeat_days/7:(i.repeat_days||'');$('f6').value=i.kind||'med';$('f3').placeholder='Repeat every… (blank = once)';
 }
-function petRep(r,u){const n=r?+r:null;if(!n)return{repeat_days:null,repeat_unit:'days'};return u==='weeks'?{repeat_days:n*7,repeat_unit:'days'}:u==='months'?{repeat_days:n,repeat_unit:'months'}:{repeat_days:n,repeat_unit:'days'}}
+function petRep(r,u){const n=r?+r:null;if(!n)return{repeat_days:null,repeat_unit:'days'};return u==='years'?{repeat_days:n*12,repeat_unit:'months'}:u==='weeks'?{repeat_days:n*7,repeat_unit:'days'}:u==='months'?{repeat_days:n,repeat_unit:'months'}:{repeat_days:n,repeat_unit:'days'}}
 const addMonths=(d,n,dom)=>{const x=new Date(d.getFullYear(),d.getMonth()+n,1);x.setDate(Math.min(dom||d.getDate(),new Date(x.getFullYear(),x.getMonth()+1,0).getDate()));return x};
 function petNext(i){const t=new Date();t.setHours(0,0,0,0);
   if(i.repeat_unit==='months'&&i.repeat_days){const b=new Date((i.next_due||ymd(t))+'T00:00'),dom=b.getDate();let x=b,n=0;while(x<=t&&n<600){n+=i.repeat_days;x=addMonths(b,n,dom)}return ymd(x)}
@@ -645,7 +646,7 @@ async function doneChore(id){
   const c=ch.find(x=>x.id===id);if(!c)return;
   askWho(c.name,async who=>{
   const upd={last_done_at:new Date().toISOString(),last_done_by:ME};
-  if(c.repeat_days)upd.next_due=ymd(addDays(new Date(),c.repeat_days));
+  if(c.repeat_days)upd.next_due=c.repeat_unit==='months'?ymd(addMonths(new Date(),c.repeat_days)):ymd(addDays(new Date(),c.repeat_days));
   await sb.from('chores').update(upd).eq('id',id);
   await sb.from('activity_log').insert({household_id:HID,kind:'chore',item_id:id,title:c.name,done_by:who});load()})
 }
@@ -747,10 +748,10 @@ function renderToday(){
   $('tev').innerHTML=es.length?es.map(e=>`<div class="sr" onclick="editEvent('${e.id}')">${e.all_day?'<b>All day</b>':'<b>'+new Date(e.starts_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}).replace(/\s?(am|pm)/i,'')+'</b>'}<span>${esc(e.title)}</span></div>`).join(''):'<p class="ph">No events today.</p>';
   const due=(d,l,r,m)=>{const s=dueState(d,l,r,m);return d&&s!=='ok'&&dayDiff(d)<=0?s:null};
   const row=(s,ico,t,fn,btn)=>`<div class="sr st-${s}"><span>${ico}</span><span>${s==='over'?'⚠ ':''}${esc(t)}</span><button onclick="${fn}">${btn}</button></div>`;
-  const dl=[];
-  ch.forEach(c=>{const s=due(c.next_due,c.last_done_at,c.repeat_days,2);if(s)dl.push(row(s,'🧹',c.name+(c.assignee?' · '+(ASSIGN.find(o=>o[0]===c.assignee)||[0,''])[1]:''),`doneChore('${c.id}')`,'Done'))});
+  const dl=[],dlK=[];
+  ch.forEach(c=>{const s=due(c.next_due,c.last_done_at,chDays(c),2);if(s)(c.assignee==='kim'?dlK:dl).push(row(s,'🧹',c.name+(c.assignee?' · '+(ASSIGN.find(o=>o[0]===c.assignee)||[0,''])[1]:''),`doneChore('${c.id}')`,'Done'))});
   bills.forEach(b=>{const s=due(b.due_date,b.last_paid_at,FREQ_DAYS[b.repeat]||0,7);if(s)dl.push(row(s,'💲',b.name+(b.amount!=null?' · '+money(b.amount):'')+(b.assignee?' · '+(ASSIGN.find(o=>o[0]===b.assignee)||[0,''])[1]:''),`payBill('${b.id}')`,'Paid'))});
-  $('tdue').innerHTML=dl.join('')||'<p class="ph">Nothing due 🎉</p>';
+  $('tdue').innerHTML=dlK.concat(dl).join('')||'<p class="ph">Nothing due 🎉</p>';
   const pl=[];
   pit.forEach(i=>{const s=due(i.next_due,i.last_done_at,i.repeat_days,7);if(s){const p=pets.find(x=>x.id===i.pet_id);pl.push(row(s,(KIND[i.kind]||KIND.other)[0],(p?p.name+': ':'')+i.name,`givePetItem('${i.id}')`,'Given'))}});
   $('tpet').innerHTML=pl.join('')||'<p class="ph">Nothing due 🐾</p>';
